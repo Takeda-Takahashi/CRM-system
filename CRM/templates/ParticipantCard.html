@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const token = localStorage.getItem('access_token');
+  console.log('Token from localStorage:', token);
+
+  if (!token) {
+    console.error('No token! Redirecting to login...');
+    window.location.href = '/login/';
+    return;
+  }
+
+  // Показываем что происходит
+  document.getElementById('full-name').textContent = 'Загрузка данных...';
+
+  // Делаем простой fetch запрос
+  fetch('/api/me/', {
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(response => {
+    console.log('Response status:', response.status);
+
+    if (response.status === 404) {
+      console.error('404 - Endpoint not found');
+      document.getElementById('message').innerHTML =
+        '<div class="error">Ошибка 404: Endpoint /api/me/ не найден</div>';
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error(`HTTP error ${response.status}`);
+    }
+
+    return response.json();
+  })
+  .then(data => {
+    console.log('Received data:', data);
+
+    if (data) {
+      // Заполняем карточку
+      document.getElementById('full-name').textContent =
+        `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'Участник';
+      document.getElementById('role').textContent = data.role || '—';
+      document.getElementById('email').value = data.email || 'example@email.com';
+      document.getElementById('first_name').value = data.first_name || 'Имя';
+      document.getElementById('last_name').value = data.last_name || 'Фамилия';
+      document.getElementById('phone').value = data.phone || '+7 (999) 000-00-00';
+      document.getElementById('birth_date').value = data.birth_date || '01.01.1990';
+      document.getElementById('join_date').value = data.join_date || '01.01.2024';
+      document.getElementById('emergency_contact').value = data.emergency_contact || 'Не указано';
+      document.getElementById('address').value = data.address || 'Не указан';
+
+      // Показываем успех
+      document.getElementById('message').innerHTML =
+        '<div class="success">Данные загружены успешно!</div>';
+    }
+  })
+  .catch(error => {
+    console.error('Fetch error:', error);
+    document.getElementById('message').innerHTML =
+      `<div class="error">Ошибка: ${error.message}</div>`;
+
+    // Заполняем тестовыми данными при ошибке
+    document.getElementById('full-name').textContent = 'Тестовый Пользователь';
+    document.getElementById('role').textContent = 'Администратор';
+    document.getElementById('email').value = 'test@example.com';
+    document.getElementById('first_name').value = 'Тестовый';
+    document.getElementById('last_name').value = 'Пользователь';
+    document.getElementById('phone').value = '+7 (999) 111-22-33';
+    document.getElementById('birth_date').value = '15.05.1985';
+    document.getElementById('join_date').value = '01.09.2023';
+    document.getElementById('emergency_contact').value = 'Техподдержка';
+    document.getElementById('address').value = 'Офис 101';
+  });
+});
+
+// Остальные функции без изменений
+function editMode() {
+  document.querySelectorAll('#profile-form input').forEach(i => i.removeAttribute('readonly'));
+}
+
+function logout() {
+  localStorage.removeItem('access_token');
+  window.location.href = '/login/';
+}
+</script>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CRM — Карточка участника</title>
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <style>
+    /* Твой стиль — оставляем без изменений */
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; font-family: 'Helvetica Neue', Arial, sans-serif; background: #f5f5f5; color: #222; padding: 2rem 1rem; }
+    .profile-container { max-width: 1000px; margin: 0 auto; background: #fff; border-radius: 16px; box-shadow: 0 12px 30px rgba(0,0,0,.08); border: 1px solid #e2e2e2; overflow: hidden; animation: fadeIn .45s ease-out; }
+    .profile-header { display: flex; flex-direction: row; gap: 2rem; padding: 2.5rem 2rem 1.5rem; border-bottom: 1px solid #e8e8e8; }
+    @media (max-width: 768px) { .profile-header { flex-direction: column; align-items: center; text-align: center; } }
+    .avatar-wrapper { flex: 0 0 160px; text-align: center; }
+    .avatar { width: 160px; height: 160px; border-radius: 50%; background: #ddd; background-size: cover; background-position: center; border: 4px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,.1); margin-bottom: .75rem; }
+    .avatar-label { font-size: .9rem; color: #555; cursor: pointer; display: block; }
+    .avatar-label:hover { color: #111; }
+    .profile-data { flex: 1; min-width: 0; }
+    .profile-data h1 { margin: 0 0 .5rem; font-size: 1.8rem; font-weight: 600; color: #111; }
+    .profile-data .subtitle { font-size: 1rem; color: #666; margin-bottom: 1.5rem; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem; margin-bottom: 1.5rem; }
+    .form-group { display: flex; flex-direction: column; }
+    label { margin-bottom: .45rem; font-size: .92rem; font-weight: 500; color: #333; }
+    input { padding: 0.85rem 1rem; font-size: 1rem; border: 1.5px solid #ccc; border-radius: 8px; background: #fafafa; transition: border-color .2s, box-shadow .2s; }
+    input[readonly] { background: #f0f0f0; color: #555; cursor: not-allowed; }
+    input:focus { outline: none; border-color: #222; box-shadow: 0 0 0 3px rgba(0,0,0,.07); }
+    .btn-group { display: flex; gap: .75rem; margin-top: .5rem; }
+    button { padding: 0.75rem 1.2rem; font-size: .95rem; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: background .2s, transform .1s; }
+    .btn-primary { background: #111; color: #fff; }
+    .btn-primary:hover { background: #000; }
+    .btn-secondary { background: #e0e0e0; color: #111; }
+    .btn-secondary:hover { background: #d0d0d0; }
+    button:active { transform: translateY(1px); }
+    .logs-section { padding: 1.5rem 2rem 2rem; border-top: 1px solid #e8e8e8; background: #fafafa; }
+    .logs-section h2 { margin: 0 0 1rem; font-size: 1.15rem; font-weight: 600; color: #111; }
+    .log-list { list-style: none; padding: 0; margin: 0; max-height: 300px; overflow-y: auto; font-size: .9rem; color: #444; }
+    .log-item { padding: .75rem 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+    .log-item:last-child { border-bottom: none; }
+    .log-time { font-size: .8rem; color: #888; white-space: nowrap; }
+    .log-action { flex: 1; margin-left: 1rem; }
+    .message { margin: 1rem 0; padding: .75rem 1rem; border-radius: 8px; font-size: .9rem; text-align: center; }
+    .success { background: #f0f8f0; color: #2e7d32; border: 1px solid #c8e6c9; }
+    .error { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+  <div class="profile-container">
+
+    <!-- Заголовок с аватаром и данными -->
+    <div class="profile-header">
+      <div class="avatar-wrapper">
+        <div class="avatar" id="avatar-img"></div>
+        <label class="avatar-label" for="avatar-upload">Изменить фото</label>
+        <input type="file" id="avatar-upload" accept="image/*" style="display: none;">
+      </div>
+
+      <div class="profile-data">
+        <h1 id="full-name">Загрузка...</h1>
+        <div class="subtitle" id="role">—</div>
+
+        <form id="profile-form"
+              hx-put="/api/profile/"
+              hx-target="#message"
+              hx-swap="innerHTML">
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input id="email" type="email" name="email" readonly />
+            </div>
+            <div class="form-group">
+              <label for="first_name">Имя</label>
+              <input id="first_name" type="text" name="first_name" readonly />
+            </div>
+            <div class="form-group">
+              <label for="last_name">Фамилия</label>
+              <input id="last_name" type="text" name="last_name" readonly />
+            </div>
+            <div class="form-group">
+              <label for="phone">Телефон</label>
+              <input id="phone" type="tel" name="phone" readonly />
+            </div>
+            <div class="form-group">
+              <label for="birth_date">Дата рождения</label>
+              <input id="birth_date" type="text" readonly />
+            </div>
+            <div class="form-group">
+              <label for="join_date">Дата вступления</label>
+              <input id="join_date" type="text" readonly />
+            </div>
+            <div class="form-group">
+              <label for="emergency_contact">Экстренный контакт</label>
+              <input id="emergency_contact" type="text" readonly />
+            </div>
+            <div class="form-group">
+              <label for="address">Адрес</label>
+              <input id="address" type="text" readonly />
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button type="button" class="btn-secondary" onclick="editMode()">Редактировать</button>
+            <button type="button" class="btn-secondary" onclick="logout()">Выйти</button>
+          </div>
+        </form>
+
+        <div id="message"></div>
+      </div>
+    </div>
+
+    <!-- Логи -->
+    <div class="logs-section">
+      <h2>История изменений</h2>
+      <ul class="log-list" id="logs-list">
+        <li class="log-item"><div class="log-action">Загрузка...</div></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Загрузка профиля при открытии -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        window.location.href = '/login/';
+        return;
+      }
+
+      htmx.ajax('GET', '/api/me/', {
+        headers: { 'Authorization': 'Bearer ' + token },
+        swap: 'none'
+      }).then((evt) => {
+        if (evt.detail.xhr.status === 200) {
+          const data = JSON.parse(evt.detail.xhr.responseText);
+          fillProfile(data);
+        } else {
+          document.getElementById('message').innerHTML = '<div class="error">Не удалось загрузить профиль</div>';
+        }
+      }).catch(() => {
+        document.getElementById('message').innerHTML = '<div class="error">Ошибка сети</div>';
+      });
+    });
+
+    function fillProfile(data) {
+      document.getElementById('full-name').textContent = `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'Участник';
+      document.getElementById('role').textContent = data.role || '—';
+      document.getElementById('email').value = data.email || '';
+      document.getElementById('first_name').value = data.first_name || '';
+      document.getElementById('last_name').value = data.last_name || '';
+      document.getElementById('phone').value = data.phone || '';
+      document.getElementById('birth_date').value = data.birth_date || '';
+      document.getElementById('join_date').value = data.join_date || '';
+      document.getElementById('emergency_contact').value = data.emergency_contact || '';
+      document.getElementById('address').value = data.address || '';
+
+      if (data.avatar_url) {
+        document.getElementById('avatar-img').style.backgroundImage = `url(${data.avatar_url})`;
+      }
+    }
+
+    function editMode() {
+      document.querySelectorAll('#profile-form input').forEach(i => i.removeAttribute('readonly'));
+    }
+
+    function logout() {
+      localStorage.removeItem('access_token');
+      window.location.href = '/login/';
+    }
+  </script>
+
+</body>
+</html>
