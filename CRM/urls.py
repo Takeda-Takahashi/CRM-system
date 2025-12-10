@@ -45,6 +45,9 @@ def dashboard_page(request):
 def profile_page(request):
     return render(request, 'profile.html')
 
+def lessons_page(request):
+    return render(request, 'lessons_calendar.html')
+
 # === Основные маршруты ===
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -70,7 +73,7 @@ urlpatterns = [
     path('profile/', profile_page, name='profile-page'),
     path('api/me/', CurrentUserProfile.as_view(), name='current-user'),
     path('api/profile/', CurrentUserProfile.as_view(), name='profile'),
-
+    path('lessons/', lessons_page, name='lessons'),
     # Главная → логин
     path('', login_page),
 ]

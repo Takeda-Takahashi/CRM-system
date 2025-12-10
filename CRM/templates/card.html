@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карточка ученика - CRM</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/students_card_style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Шапка с кнопками -->
+        <div class="header">
+            <h1><i class="fas fa-user-graduate"></i> Карточка ученика</h1>
+            <div class="header-buttons">
+                <button class="btn btn-secondary">
+                    <i class="fas fa-edit"></i> Редактировать
+                </button>
+                <button class="btn btn-primary">
+                    <i class="fas fa-print"></i> Распечатать
+                </button>
+                <button class="btn btn-primary">
+                    <i class="fas fa-envelope"></i> Отправить
+                </button>
+            </div>
+        </div>
+
+        <!-- Основная карточка ученика -->
+<div class="student-card">
+    <!-- Левая часть - фото и основное -->
+    <div class="student-left">
+        <div class="avatar-container">
+            <img src="https://images.unsplash.com/photo-1566753323558-f4e0952af115?w=400&h=400&fit=crop" alt="Фото ученика" class="avatar">
+            <div class="avatar-edit">
+                <i class="fas fa-camera"></i>
+            </div>
+        </div>
+
+        <div class="student-name">Иванов Иван</div>
+        <div class="student-id">ID: STU-2023-001</div>
+        <div class="status-badge status-active">
+            <i class="fas fa-check-circle"></i> Активный
+        </div>
+
+        <div class="quick-info">
+            <div class="info-item">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Возраст: 16 лет</span>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-phone"></i>
+                <span>+7 (999) 123-45-67</span>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-envelope"></i>
+                <span>ivanov@example.com</span>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>г. Москва</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Правая часть - разделенная на 2 части -->
+    <div class="student-right">
+        <!-- ВЕРХНЯЯ ЧАСТЬ: Горизонтальная группировка информации -->
+        <div class="student-info-horizontal">
+            <!-- Личная информация -->
+            <div class="info-section">
+                <h3><i class="fas fa-user"></i> Личная информация</h3>
+                <div class="info-row">
+                    <span class="info-label">Дата рождения:</span>
+                    <span class="info-value">15.05.2007</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Пол:</span>
+                    <span class="info-value">Мужской</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Дата регистрации:</span>
+                    <span class="info-value">01.09.2023</span>
+                </div>
+            </div>
+
+            <!-- Контактная информация -->
+            <div class="info-section">
+                <h3><i class="fas fa-address-book"></i> Контакты</h3>
+                <div class="info-row">
+                    <span class="info-label">Телефон:</span>
+                    <span class="info-value">+7 (999) 987-65-43</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Экстренный контакт:</span>
+                    <span class="info-value">Мама: Анна Иванова</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Адрес:</span>
+                    <span class="info-value">ул. Примерная, д. 15, кв. 42</span>
+                </div>
+            </div>
+
+            <!-- Дополнительная информация (если нужно) -->
+            <div class="info-section">
+                <h3><i class="fas fa-info-circle"></i> Дополнительно</h3>
+                <div class="info-row">
+                    <span class="info-label">Уровень:</span>
+                    <span class="info-value">Продвинутый</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Тренер:</span>
+                    <span class="info-value">Сергей Петров</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Статус:</span>
+                    <span class="info-value">Активный</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- НИЖНЯЯ ЧАСТЬ: Контейнер во всю ширину -->
+        <div class="student-full-width-container">
+            <!-- Здесь будет контент на всю ширину -->
+            <div class="full-width-header">
+                <h3><i class="fas fa-credit-card"></i> Абонементы и платежи</h3>
+            </div>
+
+            <!-- Пример контента -->
+            <div class="full-width-content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">3</div>
+                        <div class="stat-label">Активных абонемента</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">19 500 ₽</div>
+                        <div class="stat-label">Общая стоимость</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">85%</div>
+                        <div class="stat-label">Посещаемость</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">15</div>
+                        <div class="stat-label">Всего занятий</div>
+                    </div>
+                </div>
+
+                <!-- Абонементы по видам оружия -->
+<div class="weapon-subscriptions-section">
+    <div class="weapons-header">
+        <h4><i class="fas fa-swords"></i> Абонементы по направлениям</h4>
+        <button class="btn btn-primary btn-small" onclick="addWeaponSubscription()">
+            <i class="fas fa-plus"></i> Добавить абонемент
+        </button>
+    </div>
+
+    <div class="weapons-grid">
+        <!-- Рапира -->
+        <div class="weapon-card" data-weapon="rapier" onmouseover="showWeaponDetails('rapier')" onmouseout="hideWeaponDetails('rapier')">
+            <div class="weapon-icon">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="weapon-info">
+                <h5 class="weapon-name">Рапира</h5>
+                <div class="weapon-status active">
+                    <i class="fas fa-check-circle"></i> Активен
+                </div>
+            </div>
+            <div class="weapon-details" id="details-rapier">
+                <div class="detail-item">
+                    <span class="detail-label">Осталось занятий:</span>
+                    <span class="detail-value">8 из 12</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Действует до:</span>
+                    <span class="detail-value">15.12.2024</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Тренер:</span>
+                    <span class="detail-value">Сергей Петров</span>
+                </div>
+                <button class="btn-weapon-action">
+                    <i class="fas fa-chart-line"></i> Подробнее
+                </button>
+            </div>
+        </div>
+
+        <!-- Шпага -->
+        <div class="weapon-card" data-weapon="epee" onmouseover="showWeaponDetails('epee')" onmouseout="hideWeaponDetails('epee')">
+            <div class="weapon-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div class="weapon-info">
+                <h5 class="weapon-name">Шпага</h5>
+                <div class="weapon-status pending">
+                    <i class="fas fa-clock"></i> Ожидает оплаты
+                </div>
+            </div>
+            <div class="weapon-details" id="details-epee">
+                <div class="detail-item">
+                    <span class="detail-label">Стоимость:</span>
+                    <span class="detail-value">8 500 ₽/мес</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Начало:</span>
+                    <span class="detail-value">01.12.2024</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Тренер:</span>
+                    <span class="detail-value">Анна Смирнова</span>
+                </div>
+                <button class="btn-weapon-action">
+                    <i class="fas fa-credit-card"></i> Оплатить
+                </button>
+            </div>
+        </div>
+
+        <!-- Сабля -->
+        <div class="weapon-card" data-weapon="sabre" onmouseover="showWeaponDetails('sabre')" onmouseout="hideWeaponDetails('sabre')">
+            <div class="weapon-icon">
+                <i class="fas fa-cut"></i>
+            </div>
+            <div class="weapon-info">
+                <h5 class="weapon-name">Сабля</h5>
+                <div class="weapon-status active">
+                    <i class="fas fa-check-circle"></i> Активен
+                </div>
+            </div>
+            <div class="weapon-details" id="details-sabre">
+                <div class="detail-item">
+                    <span class="detail-label">Тип:</span>
+                    <span class="detail-value">Безлимит</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Автопродление:</span>
+                    <span class="detail-value">Включено</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Следующее занятие:</span>
+                    <span class="detail-value">Завтра, 17:00</span>
+                </div>
+                <button class="btn-weapon-action">
+                    <i class="fas fa-calendar-alt"></i> Расписание
+                </button>
+            </div>
+        </div>
+
+        <!-- Меч -->
+        <div class="weapon-card" data-weapon="sword" onmouseover="showWeaponDetails('sword')" onmouseout="hideWeaponDetails('sword')">
+            <div class="weapon-icon">
+                <i class="fas fa-crosshairs"></i>
+            </div>
+            <div class="weapon-info">
+                <h5 class="weapon-name">Меч</h5>
+                <div class="weapon-status expired">
+                    <i class="fas fa-times-circle"></i> Завершен
+                </div>
+            </div>
+            <div class="weapon-details" id="details-sword">
+                <div class="detail-item">
+                    <span class="detail-label">Завершен:</span>
+                    <span class="detail-value">01.11.2024</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Всего занятий:</span>
+                    <span class="detail-value">16</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Посещаемость:</span>
+                    <span class="detail-value">94%</span>
+                </div>
+                <button class="btn-weapon-action">
+                    <i class="fas fa-redo"></i> Возобновить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+            </div>
+        </div>
+    </div>
+</div>
+        <!-- Нижнее меню с вкладками -->
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <button class="tab-btn active" data-tab="payments">
+                    <i class="fas fa-money-bill-wave"></i> Оплаты
+                    <span class="tab-count">5</span>
+                </button>
+                <button class="tab-btn" data-tab="groups">
+                    <i class="fas fa-users"></i> Группы
+                    <span class="tab-count">3</span>
+                </button>
+                <button class="tab-btn" data-tab="lockers">
+                    <i class="fas fa-lock"></i> Шкафчики
+                    <span class="tab-count">1</span>
+                </button>
+                <button class="tab-btn" data-tab="attendance">
+                    <i class="fas fa-calendar-check"></i> Посещаемость
+                </button>
+                <button class="tab-btn" data-tab="progress">
+                    <i class="fas fa-chart-line"></i> Прогресс
+                </button>
+                <button class="tab-btn" data-tab="notes">
+                    <i class="fas fa-sticky-note"></i> Заметки
+                    <span class="tab-count">2</span>
+                </button>
+            </div>
+
+            <div class="tab-content">
+                <!-- Вкладка оплат -->
+                <div class="tab-pane active" id="payments">
+                    <h3 style="margin-bottom: 20px; color: #2c3e50;">История платежей</h3>
+                    <div class="payments-grid">
+                        <div class="payment-card">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <strong style="color: #2c3e50;">Октябрь 2023</strong>
+                                <span style="color: #2ecc71; font-weight: 600;">7 000 ₽</span>
+                            </div>
+                            <div style="color: #7f8c8d; font-size: 14px; margin-bottom: 10px;">Оплачено 15.10.2023</div>
+                            <div style="display: flex; gap: 10px;">
+                                <span style="background: #e8f6f3; color: #27ae60; padding: 3px 10px; border-radius: 12px; font-size: 12px;">Карта</span>
+                                <span style="background: #e8f6f3; color: #27ae60; padding: 3px 10px; border-radius: 12px; font-size: 12px;">Автоплатеж</span>
+                            </div>
+                        </div>
+
+                        <div class="payment-card">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <strong style="color: #2c3e50;">Сентябрь 2023</strong>
+                                <span style="color: #2ecc71; font-weight: 600;">7 000 ₽</span>
+                            </div>
+                            <div style="color: #7f8c8d; font-size: 14px; margin-bottom: 10px;">Оплачено 12.09.2023</div>
+                            <div style="display: flex; gap: 10px;">
+                                <span style="background: #e8f6f3; color: #27ae60; padding: 3px 10px; border-radius: 12px; font-size: 12px;">Наличные</span>
+                            </div>
+                        </div>
+
+                        <div class="payment-card overdue">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <strong style="color: #2c3e50;">Ноябрь 2023</strong>
+                                <span style="color: #e74c3c; font-weight: 600;">7 000 ₽</span>
+                            </div>
+                            <div style="color: #7f8c8d; font-size: 14px; margin-bottom: 10px;">Просрочено с 15.11.2023</div>
+                            <div style="display: flex; gap: 10px;">
+                                <span style="background: #ffebee; color: #c62828; padding: 3px 10px; border-radius: 12px; font-size: 12px;">Ожидает оплаты</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Вкладка групп -->
+                <div class="tab-pane" id="groups">
+                    <h3 style="margin-bottom: 20px; color: #2c3e50;">Текущие группы</h3>
+                    <div class="groups-grid">
+                        <div class="group-card">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                                <div style="width: 40px; height: 40px; background: #9b59b6; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
+                                    <i class="fas fa-dumbbell"></i>
+                                </div>
+                                <div>
+                                    <strong style="color: #2c3e50;">Рапира базовая</strong>
+                                    <div style="color: #7f8c8d; font-size: 14px;">Пн, Ср, Пт 16:00</div>
+                                </div>
+                            </div>
+                            <div style="color: #7f8c8d; font-size: 14px; margin-bottom: 15px;">Тренер: Жарова Арсения</div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="background: #e8f4fd; color: #3498db; padding: 5px 12px; border-radius: 15px; font-size: 12px;">12 занятий</span>
+                                <span style="color: #2ecc71; font-weight: 600;">Активно</span>
+                            </div>
+                        </div>
+
+                        <div class="group-card">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                                <div style="width: 40px; height: 40px; background: #3498db; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
+                                    <i class="fas fa-gun"></i>
+                                </div>
+                                <div>
+                                    <strong style="color: #2c3e50;">Длинный меч базовая 3</strong>
+                                    <div style="color: #7f8c8d; font-size: 14px;">Вт, Чт 17:30</div>
+                                </div>
+                            </div>
+                            <div style="color: #7f8c8d; font-size: 14px; margin-bottom: 15px;">Тренер: Петров Иван</div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="background: #e8f4fd; color: #3498db; padding: 5px 12px; border-radius: 15px; font-size: 12px;">8 занятий</span>
+                                <span style="color: #2ecc71; font-weight: 600;">Активно</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Вкладка шкафчиков -->
+                <div class="tab-pane" id="lockers">
+                    <h3 style="margin-bottom: 20px; color: #2c3e50;">Арендованные шкафчики</h3>
+                    <div class="lockers-grid">
+                        <div class="locker-card">
+                            <i class="fas fa-lock" style="font-size: 40px; color: #3498db;"></i>
+                            <div class="locker-number">B-24</div>
+                            <div style="color: #7f8c8d; margin-bottom: 15px;">Зона: Основной зал</div>
+                            <div style="margin-bottom: 15px;">
+                                <div style="color: #2c3e50; font-weight: 600;">Аренда до:</div>
+                                <div style="color: #e74c3c;">31.12.2025</div>
+                            </div>
+                            <button style="background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; width: 100%;">
+                                Продлить аренду
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Вкладка посещаемости -->
+                <div class="tab-pane" id="attendance">
+                    <h3 style="margin-bottom: 20px; color: #2c3e50;">Статистика посещаемости</h3>
+                    <div class="attendance-chart">
+                        <div style="text-align: center;">
+                            <i class="fas fa-chart-pie" style="font-size: 60px; color: #3498db; margin-bottom: 20px;"></i>
+                            <div>Здесь будет график посещаемости</div>
+                            <div style="font-size: 14px; margin-top: 10px;">Общая посещаемость: 85%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Вкладка прогресса -->
+                <div class="tab-pane" id="progress">
+                    <h3 style="margin-bottom: 20px; color: #2c3e50;">Прогресс обучения</h3>
+                    <div class="attendance-chart">
+                        <div style="text-align: center;">
+                            <i class="fas fa-chart-line" style="font-size: 60px; color: #2ecc71; margin-bottom: 20px;"></i>
+                            <div>Здесь будет график прогресса</div>
+                            <div style="font-size: 14px; margin-top: 10px;">Последняя оценка тренера: 8.5/10</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Вкладка заметок -->
+                <div class="tab-pane" id="notes">
+                    <h3 style="margin-bottom: 20px; color: #2c3e50;">Заметки тренера</h3>
+                    <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.08); margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <strong style="color: #2c3e50;">15.12.2025</strong>
+                            <span style="color: #7f8c8d; font-size: 14px;">Тренер: Сергей Петров</span>
+                        </div>
+                        <p style="color: #34495e; line-height: 1.6;">
+                            Иван показывает хороший прогресс в силовых упражнениях. Улучшил технику приседаний на 30%.
+                            Рекомендую увеличить нагрузку на следующей неделе.
+                        </p>
+                    </div>
+
+                    <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.08);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <strong style="color: #2c3e50;">01.12.2025</strong>
+                            <span style="color: #7f8c8d; font-size: 14px;">Тренер: Анна Смирнова</span>
+                        </div>
+                        <p style="color: #34495e; line-height: 1.6;">
+                            Балбес.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Переключение вкладок
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                // Убираем активный класс у всех кнопок
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                // Добавляем активный класс нажатой кнопке
+                button.classList.add('active');
+
+                // Скрываем все вкладки
+                document.querySelectorAll('.tab-pane').forEach(pane => {
+                    pane.classList.remove('active');
+                });
+
+                // Показываем нужную вкладку
+                const tabId = button.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // Имитация загрузки данных
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Карточка ученика загружена');
+
+            // Можно добавить AJAX загрузку данных
+            // fetch('/api/student/1')
+            //     .then(response => response.json())
+            //     .then(data => fillStudentData(data));
+        });
+
+        // Функция для заполнения данных (пример)
+        function fillStudentData(data) {
+            // Заполнение основных полей
+            document.querySelector('.student-name').textContent = data.fullName;
+            document.querySelector('.student-id').textContent = `ID: ${data.studentId}`;
+            // и так далее...
+        }
+    </script>
+</body>
+</html>

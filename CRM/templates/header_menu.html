@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CRM Система{% endblock %}</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <link rel="stylesheet" href="/static/css/profile_style.css">
+    <link rel="stylesheet" href="/static/css/students_card_style.css">
+    <link rel="stylesheet" href="/static/css/lessons_style.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="container">
+        <!-- Новая компактная шапка -->
+        <header class="main-header">
+            <!-- Логотип и название -->
+            <div class="logo-section">
+                <div class="logo">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="site-title">CRM-система</div>
+            </div>
+
+            <!-- Поиск -->
+            <div class="search-container">
+                <input type="text"
+                       class="search-input"
+                       placeholder="Поиск клиента или лида по имени..."
+                       id="search-input">
+                <div class="search-icon" onclick="performSearch()">
+                    <i class="fas fa-search"></i>
+                </div>
+            </div>
+
+            <!-- Правая часть: меню и пользователь -->
+            <div class="header-right">
+                <!-- Гамбургер-меню -->
+                <div class="hamburger-menu">
+                    <div class="hamburger-btn" onclick="toggleMainMenu()">
+                        <div class="hamburger-line"></div>
+                        <div class="hamburger-line"></div>
+                        <div class="hamburger-line"></div>
+                    </div>
+                    <div class="main-menu" id="main-menu">
+                        <a href="/tasks/" class="menu-item">
+                            <i class="fas fa-tasks"></i>
+                            <span>Задачи</span>
+                        </a>
+                        <a href="/lessons/" class="menu-item">
+                            <i class="fas fa-calendar-check"></i>
+                            <span>Уроки</span>
+                        </a>
+                        <a href="/clients/" class="menu-item">
+                            <i class="fas fa-users"></i>
+                            <span>Клиенты</span>
+                        </a>
+                        <a href="/subscriptions/" class="menu-item">
+                            <i class="fas fa-credit-card"></i>
+                            <span>Абонементы</span>
+                        </a>
+                        <div class="menu-divider"></div>
+                        <a href="/groups/" class="menu-item">
+                            <i class="fas fa-layer-group"></i>
+                            <span>Группы</span>
+                        </a>
+                        <a href="/trainers/" class="menu-item">
+                            <i class="fas fa-dumbbell"></i>
+                            <span>Тренеры</span>
+                        </a>
+                        <a href="/leads/" class="menu-item">
+                            <i class="fas fa-bullseye"></i>
+                            <span>Лиды</span>
+                        </a>
+                        <a href="/analytics/" class="menu-item">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Аналитика</span>
+                        </a>
+                        <div class="menu-divider"></div>
+                        <a href="/settings/" class="menu-item">
+                            <i class="fas fa-cog"></i>
+                            <span>Настройки</span>
+                        </a>
+                        <a href="/help/" class="menu-item">
+                            <i class="fas fa-question-circle"></i>
+                            <span>Помощь</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Меню пользователя -->
+                <div class="user-menu">
+                    <div class="user-avatar" id="user-avatar" onclick="toggleUserMenu()">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-dropdown" id="user-dropdown">
+                        <div class="user-info">
+                            <div class="user-name" id="header-user-name">Иван Иванов</div>
+                            <div class="user-role" id="header-user-role">Администратор</div>
+                        </div>
+                        <a href="/profile/" class="menu-item">
+                            <i class="fas fa-user-circle"></i>
+                            <span>Мой профиль</span>
+                        </a>
+                        <a href="/notifications/" class="menu-item">
+                            <i class="fas fa-bell"></i>
+                            <span>Уведомления</span>
+                            <span class="notification-badge">3</span>
+                        </a>
+                        <div class="menu-divider"></div>
+                        <a href="#" class="menu-item" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Выйти</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Основной контент страницы -->
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Общие JavaScript функции -->
+    <script>
+        // Управление меню
+        function toggleMainMenu() {
+            const menu = document.getElementById('main-menu');
+            menu.classList.toggle('show');
+
+            // Закрываем меню пользователя если открыто
+            document.getElementById('user-dropdown').classList.remove('show');
+        }
+
+        function toggleUserMenu() {
+            const menu = document.getElementById('user-dropdown');
+            menu.classList.toggle('show');
+
+            // Закрываем основное меню если открыто
+            document.getElementById('main-menu').classList.remove('show');
+        }
+
+        // Закрытие меню при клике вне их
+        document.addEventListener('click', function(event) {
+            const mainMenu = document.getElementById('main-menu');
+            const userMenu = document.getElementById('user-dropdown');
+            const hamburgerBtn = document.querySelector('.hamburger-btn');
+            const userAvatar = document.querySelector('.user-avatar');
+
+            if (!mainMenu.contains(event.target) && !hamburgerBtn.contains(event.target)) {
+                mainMenu.classList.remove('show');
+            }
+
+            if (!userMenu.contains(event.target) && !userAvatar.contains(event.target)) {
+                userMenu.classList.remove('show');
+            }
+        });
+
+        // Поиск
+        function performSearch() {
+            const searchText = document.getElementById('search-input').value.trim();
+            if (searchText) {
+                alert(`Поиск: ${searchText}`);
+                // Здесь будет AJAX запрос поиска
+                // window.location.href = `/search/?q=${encodeURIComponent(searchText)}`;
+            }
+        }
+
+        // Поиск при нажатии Enter
+        document.getElementById('search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+
+        function logout() {
+            localStorage.removeItem('access_token');
+            window.location.href = '/login/';
+        }
+
+        // Загрузка данных пользователя при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('access_token');
+            if (token) {
+                fetch('/api/me/', {
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data) {
+                        const fullName = `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'Участник';
+                        document.getElementById('header-user-name').textContent = fullName;
+                        document.getElementById('header-user-role').textContent = data.role || 'Сотрудник';
+
+                        // Инициалы для аватара
+                        const initials = fullName.split(' ')
+                            .map(word => word.charAt(0))
+                            .join('')
+                            .toUpperCase()
+                            .slice(0, 2);
+                        document.getElementById('user-avatar').innerHTML = initials || '<i class="fas fa-user"></i>';
+                    }
+                })
+                .catch(error => console.error('Ошибка загрузки данных:', error));
+            }
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,402 @@
+{% extends 'header_menu.html' %}
+
+{% block title %}CRM — Календарь уроков{% endblock %}
+
+{% block content %}
+<body>
+    <div class="container">
+
+        <!-- Календарь уроков -->
+        <div class="lessons-container">
+            <div class="calendar-header">
+                <div>
+                    <div class="calendar-title">Календарь уроков</div>
+                    <div class="date-range" id="date-range">20 - 26 мая 2024</div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="goToday()">
+                        <i class="fas fa-calendar-day"></i> Сегодня
+                    </button>
+                    <button class="btn btn-primary" onclick="window.location.href='/lessons/create/'">
+                        <i class="fas fa-plus"></i> Новый урок
+                    </button>
+                </div>
+            </div>
+
+            <!-- Горизонтальная прокрутка дней -->
+            <div class="days-scroll-container">
+                <div class="scroll-btn scroll-btn-left" onclick="scrollDays(-1)">
+                    <i class="fas fa-chevron-left"></i>
+                </div>
+                <div class="days-scroll-wrapper" id="days-scroll">
+                    <!-- Дни будут генерироваться JavaScript -->
+                </div>
+                <div class="scroll-btn scroll-btn-right" onclick="scrollDays(1)">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </div>
+
+            <!-- Сетка времени для выбранного дня -->
+            <div class="time-grid-container">
+                <div class="selected-day-header">
+                    <div class="selected-day-title" id="selected-day-title">Понедельник, 20 мая</div>
+                    <div class="day-lessons-total" id="day-lessons-total">3 урока</div>
+                </div>
+
+                <div class="time-grid" id="time-grid">
+                    <!-- Сетка времени будет генерироваться JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+
+{% block extra_js %}
+    <script>
+        // Данные уроков
+        const lessonsData = [
+            {
+                id: 1,
+                title: "Рапира - Начинающие",
+                type: "group",
+                trainer: "Сергей Петров",
+                date: "2024-05-20",
+                startTime: "10:00",
+                endTime: "11:30",
+                students: 8,
+                maxStudents: 12,
+                status: "scheduled"
+            },
+            {
+                id: 2,
+                title: "Индивидуальный - Иван",
+                type: "individual",
+                trainer: "Анна Смирнова",
+                date: "2024-05-20",
+                startTime: "14:00",
+                endTime: "15:00",
+                status: "scheduled"
+            },
+            {
+                id: 3,
+                title: "Сабля - Продвинутые",
+                type: "group",
+                trainer: "Сергей Петров",
+                date: "2024-05-21",
+                startTime: "16:00",
+                endTime: "17:30",
+                students: 10,
+                maxStudents: 12,
+                status: "scheduled"
+            },
+            {
+                id: 4,
+                title: "Пробный урок",
+                type: "trial",
+                trainer: "Анна Смирнова",
+                date: "2024-05-22",
+                startTime: "18:00",
+                endTime: "19:00",
+                status: "scheduled"
+            },
+            {
+                id: 5,
+                title: "Шпага - Турнирная",
+                type: "group",
+                trainer: "Михаил Иванов",
+                date: "2024-05-23",
+                startTime: "11:00",
+                endTime: "12:30",
+                students: 6,
+                maxStudents: 8,
+                status: "scheduled"
+            },
+            {
+                id: 6,
+                title: "Индивидуальный - Ольга",
+                type: "individual",
+                trainer: "Анна Смирнова",
+                date: "2024-05-24",
+                startTime: "13:00",
+                endTime: "14:00",
+                status: "scheduled"
+            }
+        ];
+
+        let currentDate = new Date();
+        let selectedDate = new Date();
+        let daysList = [];
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            generateDays();
+            renderDays();
+            selectDay(selectedDate);
+            updateDateRange();
+        });
+
+        // Генерация списка дней (30 дней вперед)
+        function generateDays() {
+            daysList = [];
+            const today = new Date();
+
+            for (let i = -7; i <= 30; i++) {
+                const date = new Date(today);
+                date.setDate(today.getDate() + i);
+                daysList.push(date);
+            }
+        }
+
+        // Отрисовка дней
+        function renderDays() {
+            const daysScroll = document.getElementById('days-scroll');
+            daysScroll.innerHTML = '';
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            daysList.forEach(date => {
+                const dayCard = document.createElement('div');
+                dayCard.className = 'day-card';
+                dayCard.dataset.date = formatDate(date);
+
+                const isToday = date.toDateString() === today.toDateString();
+                const isSelected = date.toDateString() === selectedDate.toDateString();
+
+                if (isToday) dayCard.classList.add('today');
+                if (isSelected) dayCard.classList.add('active');
+
+                // Подсчет уроков на этот день
+                const dayLessons = lessonsData.filter(lesson =>
+                    lesson.date === formatDate(date)
+                );
+
+                const dayName = date.toLocaleDateString('ru-RU', { weekday: 'short' });
+                const dayNumber = date.getDate();
+                const monthName = date.toLocaleDateString('ru-RU', { month: 'short' });
+
+                dayCard.innerHTML = `
+                    <div class="day-name">${dayName}</div>
+                    <div class="day-date">${dayNumber}</div>
+                    <div class="day-month">${monthName}</div>
+                    ${dayLessons.length > 0 ?
+                        `<div class="day-lessons-count">${dayLessons.length} урок${getRussianPlural(dayLessons.length)}</div>` :
+                        '<div class="day-lessons-count" style="opacity:0.5;">Нет уроков</div>'
+                    }
+                `;
+
+                dayCard.onclick = () => {
+                    selectDay(date);
+                };
+
+                daysScroll.appendChild(dayCard);
+            });
+
+            // Скролл к выбранному дню
+            setTimeout(() => {
+                const activeCard = document.querySelector('.day-card.active');
+                if (activeCard) {
+                    activeCard.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'nearest',
+                        inline: 'center'
+                    });
+                }
+            }, 100);
+        }
+
+        // Выбор дня
+        function selectDay(date) {
+            selectedDate = date;
+            renderDays();
+            renderTimeGrid();
+
+            // Обновление заголовка
+            const options = { weekday: 'long', day: 'numeric', month: 'long' };
+            document.getElementById('selected-day-title').textContent =
+                date.toLocaleDateString('ru-RU', options);
+
+            // Обновление количества уроков
+            const dayLessons = lessonsData.filter(lesson =>
+                lesson.date === formatDate(date)
+            );
+            document.getElementById('day-lessons-total').textContent =
+                `${dayLessons.length} урок${getRussianPlural(dayLessons.length)}`;
+        }
+
+        // Отрисовка сетки времени
+        function renderTimeGrid() {
+            const timeGrid = document.getElementById('time-grid');
+            timeGrid.innerHTML = '';
+
+            const dayLessons = lessonsData.filter(lesson =>
+                lesson.date === formatDate(selectedDate)
+            );
+
+            if (dayLessons.length === 0) {
+                timeGrid.innerHTML = `
+                    <div class="empty-day">
+                        <i class="fas fa-calendar-times"></i>
+                        <h3>Нет уроков на этот день</h3>
+                        <p>Добавьте новый урок или выберите другой день</p>
+                        <button class="btn btn-primary" onclick="window.location.href='/lessons/create/'">
+                            <i class="fas fa-plus"></i> Создать урок
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Создание часовых линий (с 8:00 до 21:00)
+            for (let hour = 8; hour <= 21; hour++) {
+                const hourLine = document.createElement('div');
+                hourLine.className = 'hour-line';
+                hourLine.style.top = `${(hour - 8) * 40}px`;
+
+                const hourLabel = document.createElement('div');
+                hourLabel.className = 'hour-label';
+                hourLabel.textContent = `${hour}:00`;
+                hourLabel.style.top = `${(hour - 8) * 40}px`;
+
+                timeGrid.appendChild(hourLine);
+                timeGrid.appendChild(hourLabel);
+            }
+
+            // Отрисовка уроков
+            dayLessons.forEach(lesson => {
+                const lessonItem = document.createElement('div');
+                lessonItem.className = `lesson-item lesson-${lesson.type}`;
+
+                // Позиционирование
+                const startTime = parseTime(lesson.startTime);
+                const endTime = parseTime(lesson.endTime);
+
+                const top = ((startTime.hours - 8) * 40) + (startTime.minutes / 60 * 40);
+                const height = ((endTime.hours - startTime.hours) * 40) +
+                              ((endTime.minutes - startTime.minutes) / 60 * 40);
+
+                lessonItem.style.top = `${top}px`;
+                lessonItem.style.height = `${height}px`;
+
+                // Заполнение содержимого
+                lessonItem.innerHTML = `
+                    <div class="lesson-type">${getLessonType(lesson.type)}</div>
+                    <div class="lesson-title">${lesson.title}</div>
+                    <div class="lesson-time">${lesson.startTime} - ${lesson.endTime}</div>
+                    <div class="lesson-trainer">
+                        <i class="fas fa-user"></i> ${lesson.trainer}
+                        ${lesson.type === 'group' ?
+                            `<span style="margin-left: auto;">
+                                <i class="fas fa-users"></i> ${lesson.students}/${lesson.maxStudents}
+                            </span>` : ''
+                        }
+                    </div>
+                `;
+
+                lessonItem.onclick = () => {
+                    window.location.href = `/lesson/${lesson.id}/`;
+                };
+
+                timeGrid.appendChild(lessonItem);
+            });
+        }
+
+        // Прокрутка дней
+        function scrollDays(direction) {
+            const daysScroll = document.getElementById('days-scroll');
+            const scrollAmount = 200 * direction;
+            daysScroll.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        }
+
+        // Переход на сегодня
+        function goToday() {
+            const today = new Date();
+            selectDay(today);
+
+            // Добавление сегодняшнего дня в список если его нет
+            const todayStr = formatDate(today);
+            if (!daysList.some(d => formatDate(d) === todayStr)) {
+                generateDays();
+                renderDays();
+            }
+        }
+
+        // Обновление диапазона дат
+        function updateDateRange() {
+            const firstDay = daysList[0];
+            const lastDay = daysList[daysList.length - 1];
+
+            const firstStr = firstDay.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+            const lastStr = lastDay.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+            const year = firstDay.getFullYear();
+
+            document.getElementById('date-range').textContent =
+                `${firstStr} - ${lastStr} ${year}`;
+        }
+
+        // Поиск
+        function performSearch() {
+            const searchText = document.getElementById('search-input').value.trim();
+            if (searchText) {
+                alert(`Поиск: "${searchText}"\nВ реальном приложении здесь будет фильтрация уроков`);
+            }
+        }
+
+        // Вспомогательные функции
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function parseTime(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return { hours, minutes };
+        }
+
+        function getLessonType(type) {
+            const types = {
+                'group': 'Групповой',
+                'individual': 'Индивидуальный',
+                'trial': 'Пробный'
+            };
+            return types[type] || type;
+        }
+
+        function getRussianPlural(count) {
+            if (count % 10 === 1 && count % 100 !== 11) return '';
+            if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) return 'а';
+            return 'ов';
+        }
+
+        // Автоматическая прокрутка при наведении на края
+        const daysScroll = document.getElementById('days-scroll');
+        let scrollInterval;
+
+        daysScroll.addEventListener('mouseenter', () => {
+            daysScroll.addEventListener('mousemove', handleScrollOnHover);
+        });
+
+        daysScroll.addEventListener('mouseleave', () => {
+            daysScroll.removeEventListener('mousemove', handleScrollOnHover);
+            clearInterval(scrollInterval);
+        });
+
+        function handleScrollOnHover(e) {
+            const rect = daysScroll.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const scrollZone = 50; // пиксели от края
+
+            clearInterval(scrollInterval);
+
+            if (mouseX < scrollZone) {
+                scrollInterval = setInterval(() => {
+                    daysScroll.scrollBy({ left: -10 });
+                }, 20);
+            } else if (mouseX > rect.width - scrollZone) {
+                scrollInterval = setInterval(() => {
+                    daysScroll.scrollBy({ left: 10 });
+                }, 20);
+            }
+        }
+    </script>
+{% endblock %}
