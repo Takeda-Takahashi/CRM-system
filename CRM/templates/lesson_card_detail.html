@@ -1,0 +1,446 @@
+<!-- Модальное окно для деталей урока (скрыто по умолчанию) -->
+<div class="lesson-modal-overlay" id="lessonModalOverlay">
+    <div class="lesson-modal" id="lessonModal">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <i class="fas fa-calendar-check"></i>
+                <span id="modal-lesson-title">Детали урока</span>
+            </h3>
+            <button class="modal-close" onclick="closeLessonModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <div class="lesson-detail-header">
+                <div class="lesson-detail-type">
+                    <span class="type-badge" id="modal-lesson-type-badge">Групповой</span>
+                    <span class="lesson-detail-time">
+                        <i class="fas fa-clock"></i>
+                        <span id="modal-lesson-time">10:00 - 11:30</span>
+                    </span>
+                </div>
+                <h2 class="lesson-detail-title" id="modal-lesson-full-title">Рапира - Начинающие</h2>
+            </div>
+
+            <div class="lesson-detail-grid">
+                <div class="detail-section">
+                    <h4><i class="fas fa-info-circle"></i> Информация</h4>
+                    <div class="detail-info">
+                        <div class="detail-item">
+                            <i class="fas fa-user-tie"></i>
+                            <div>
+                                <strong>Тренер:</strong>
+                                <p id="modal-lesson-trainer">Сергей Петров</p>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <div>
+                                <strong>Зал:</strong>
+                                <p id="modal-lesson-room">Зал №1</p>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <div>
+                                <strong>Дата:</strong>
+                                <p id="modal-lesson-date">20.05.2024</p>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-hourglass-half"></i>
+                            <div>
+                                <strong>Длительность:</strong>
+                                <p id="modal-lesson-duration">90 минут</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h4><i class="fas fa-users"></i> Участники</h4>
+                    <div class="participants-list" id="modal-lesson-participants">
+                        <!-- Будет заполняться JavaScript -->
+                        <div class="no-participants">
+                            <i class="fas fa-user-slash"></i>
+                            <p>Нет записанных участников</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h4><i class="fas fa-sticky-note"></i> Примечания</h4>
+                    <div class="lesson-notes">
+                        <p id="modal-lesson-notes" class="no-notes">Примечаний нет</p>
+                    </div>
+                </div>
+
+                <div class="detail-section equipment-section">
+                    <h4><i class="fas fa-dumbbell"></i> Оборудование</h4>
+                    <div class="equipment-list" id="modal-lesson-equipment">
+                        <!-- Будет заполняться JavaScript -->
+                        <p class="no-equipment">Стандартное оборудование</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeLessonModal()">
+                <i class="fas fa-times"></i> Закрыть
+            </button>
+            <button class="btn btn-primary" onclick="editCurrentLesson()" id="editLessonBtn">
+                <i class="fas fa-edit"></i> Редактировать
+            </button>
+            <button class="btn btn-danger" onclick="cancelCurrentLesson()" id="cancelLessonBtn" style="display: none;">
+                <i class="fas fa-ban"></i> Отменить урок
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .lesson-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: none; /* Изначально скрыто */
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .lesson-modal-overlay.active {
+        display: flex; /* Показываем когда активно */
+        opacity: 1;
+    }
+
+    .lesson-modal {
+        background: white;
+        border-radius: 20px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        transform: translateY(-30px);
+        transition: transform 0.3s ease;
+    }
+
+    .lesson-modal-overlay.active .lesson-modal {
+        transform: translateY(0);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 25px;
+        border-bottom: 2px solid #f0f0f0;
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        border-radius: 20px 20px 0 0;
+    }
+
+    .modal-title {
+        margin: 0;
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .modal-close {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 18px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-close:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: rotate(90deg);
+    }
+
+    .modal-body {
+        padding: 25px;
+    }
+
+    .lesson-detail-header {
+        margin-bottom: 25px;
+    }
+
+    .lesson-detail-type {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 10px;
+    }
+
+    .type-badge {
+        padding: 6px 15px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .type-group {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+
+    .type-individual {
+        background: #e8f5e9;
+        color: #388e3c;
+    }
+
+    .type-trial {
+        background: #fff3e0;
+        color: #f57c00;
+    }
+
+    .lesson-detail-time {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 16px;
+        color: #2c3e50;
+        font-weight: 600;
+    }
+
+    .lesson-detail-title {
+        margin: 0;
+        font-size: 24px;
+        color: #2c3e50;
+        font-weight: 800;
+        word-break: break-word;
+    }
+
+    .lesson-detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 25px;
+    }
+
+    @media (max-width: 768px) {
+        .lesson-detail-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .detail-section {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    .detail-section h4 {
+        margin: 0 0 15px 0;
+        color: #2c3e50;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .detail-info {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .detail-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .detail-item i {
+        color: #3498db;
+        font-size: 18px;
+        margin-top: 2px;
+    }
+
+    .detail-item strong {
+        display: block;
+        color: #7f8c8d;
+        font-size: 13px;
+        margin-bottom: 2px;
+    }
+
+    .detail-item p {
+        margin: 0;
+        color: #2c3e50;
+        font-weight: 600;
+        word-break: break-word;
+    }
+
+    .participants-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .participants-status .status-available {
+        color: #27ae60;
+        background: #e8f6f3;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .participants-status .status-full {
+        color: #e74c3c;
+        background: #ffebee;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .participants-items {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .participant-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px;
+        background: white;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        border: 1px solid #f0f0f0;
+    }
+
+    .participant-avatar {
+        width: 40px;
+        height: 40px;
+        background: #3498db;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+
+    .participant-info {
+        flex: 1;
+        min-width: 0; /* Для корректного переноса текста */
+    }
+
+    .participant-info strong {
+        display: block;
+        color: #2c3e50;
+        font-size: 14px;
+        margin-bottom: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .participant-level {
+        font-size: 12px;
+        color: #7f8c8d;
+    }
+
+    .participant-status .status-paid {
+        color: #27ae60;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .participant-status .status-unpaid {
+        color: #e74c3c;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .no-participants, .no-notes, .no-equipment {
+        text-align: center;
+        padding: 20px;
+        color: #95a5a6;
+    }
+
+    .no-participants i {
+        font-size: 36px;
+        margin-bottom: 15px;
+        opacity: 0.5;
+    }
+
+    .lesson-notes {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #f0f0f0;
+        min-height: 100px;
+    }
+
+    .equipment-items {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .equipment-item {
+        background: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        border: 1px solid #e0e0e0;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 20px 25px;
+        border-top: 2px solid #f0f0f0;
+        background: #f8f9fa;
+        border-radius: 0 0 20px 20px;
+    }
+
+    @media (max-width: 576px) {
+        .modal-footer {
+            flex-direction: column;
+        }
+
+        .modal-footer .btn {
+            width: 100%;
+        }
+    }
+</style>
+<script src="/static/js/lesson_card_detail.js"></script>
+<script src="/static/js/lesson_calendar.js"></script>

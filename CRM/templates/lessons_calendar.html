@@ -1,6 +1,225 @@
 {% extends 'header_menu.html' %}
+{% load static %}
 
 {% block title %}CRM — Календарь уроков{% endblock %}
+
+{% block extra_css %}
+<style>
+   .time-grid {
+        position: relative;
+        height: 720px; /* 12 часов * 60px */
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #eaeaea;
+        overflow-y: auto;
+        background-image:
+            repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 59px,
+                #f8f9fa 59px,
+                #f8f9fa 60px
+            );
+    }
+
+    .time-slot {
+        position: absolute;
+        left: 80px;
+        right: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        z-index: 2;
+    }
+
+    .time-slot:hover {
+        z-index: 10;
+        transform: scale(1.01);
+    }
+
+    /* Усиленные часовые линии */
+    .hour-line {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: #e0e0e0;
+        z-index: 1;
+    }
+
+    .hour-line.major-hour {
+        background: #3498db;
+        height: 2px;
+    }
+
+    .hour-label {
+        position: absolute;
+        left: 0;
+        width: 70px;
+        text-align: right;
+        font-size: 14px;
+        color: #7f8c8d;
+        font-weight: 600;
+        transform: translateY(-50%);
+        background: white;
+        padding-right: 15px;
+        z-index: 2;
+    }
+
+    .hour-label.major-hour {
+        color: #2c3e50;
+        font-weight: 700;
+    }
+
+    /* Стили для карточек уроков во временной шкале */
+    .lesson-time-block {
+        background: white;
+        border-radius: 8px;
+        padding: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-left: 4px solid;
+        height: 100%;
+        box-sizing: border-box;
+        transition: all 0.2s ease;
+    }
+
+    .lesson-time-block:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .lesson-time-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .lesson-time-badge {
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .lesson-time-badge.group {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+
+    .lesson-time-badge.individual {
+        background: #e8f5e9;
+        color: #388e3c;
+    }
+
+    .lesson-time-badge.trial {
+        background: #fff3e0;
+        color: #f57c00;
+    }
+
+    .lesson-time-hours {
+        font-size: 12px;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .lesson-time-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #2c3e50;
+        margin: 0 0 5px 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .lesson-time-info {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        font-size: 11px;
+        color: #7f8c8d;
+    }
+
+    .lesson-time-trainer {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .lesson-time-trainer i {
+        font-size: 10px;
+    }
+
+    .lesson-time-participants {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: #3498db;
+        font-weight: 600;
+    }
+
+    /* Пустое состояние */
+    .empty-day {
+        text-align: center;
+        padding: 50px 20px;
+        color: #95a5a6;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 100%;
+    }
+
+    .empty-day i {
+        font-size: 48px;
+        margin-bottom: 15px;
+        opacity: 0.5;
+    }
+
+    .empty-day h3 {
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
+
+    .empty-day p {
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    /* Цвета для разных типов оружия */
+    .lesson-time-block[data-weapon="Рапира"] {
+        border-left-color: #3498db;
+    }
+
+    .lesson-time-block[data-weapon="Сабля"] {
+        border-left-color: #e74c3c;
+    }
+
+    .lesson-time-block[data-weapon="Шпага"] {
+        border-left-color: #9b59b6;
+    }
+
+    .lesson-time-block[data-weapon="Длинный меч"] {
+        border-left-color: #2ecc71;
+    }
+
+    .lesson-time-block[data-weapon="Рапира"] .lesson-time-title {
+        color: #3498db;
+    }
+
+    .lesson-time-block[data-weapon="Сабля"] .lesson-time-title {
+        color: #e74c3c;
+    }
+
+    .lesson-time-block[data-weapon="Шпага"] .lesson-time-title {
+        color: #9b59b6;
+    }
+
+    .lesson-time-block[data-weapon="Длинный меч"] .lesson-time-title {
+        color: #2ecc71;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <body>
@@ -44,359 +263,17 @@
                 </div>
 
                 <div class="time-grid" id="time-grid">
-                    <!-- Сетка времени будет генерироваться JavaScript -->
+                    <!-- Временная шкала будет генерироваться JavaScript -->
                 </div>
             </div>
         </div>
+
+    {% include 'lesson_card_detail.html' %}
     </div>
 {% endblock %}
 
-
 {% block extra_js %}
-    <script>
-        // Данные уроков
-        const lessonsData = [
-            {
-                id: 1,
-                title: "Рапира - Начинающие",
-                type: "group",
-                trainer: "Сергей Петров",
-                date: "2024-05-20",
-                startTime: "10:00",
-                endTime: "11:30",
-                students: 8,
-                maxStudents: 12,
-                status: "scheduled"
-            },
-            {
-                id: 2,
-                title: "Индивидуальный - Иван",
-                type: "individual",
-                trainer: "Анна Смирнова",
-                date: "2024-05-20",
-                startTime: "14:00",
-                endTime: "15:00",
-                status: "scheduled"
-            },
-            {
-                id: 3,
-                title: "Сабля - Продвинутые",
-                type: "group",
-                trainer: "Сергей Петров",
-                date: "2024-05-21",
-                startTime: "16:00",
-                endTime: "17:30",
-                students: 10,
-                maxStudents: 12,
-                status: "scheduled"
-            },
-            {
-                id: 4,
-                title: "Пробный урок",
-                type: "trial",
-                trainer: "Анна Смирнова",
-                date: "2024-05-22",
-                startTime: "18:00",
-                endTime: "19:00",
-                status: "scheduled"
-            },
-            {
-                id: 5,
-                title: "Шпага - Турнирная",
-                type: "group",
-                trainer: "Михаил Иванов",
-                date: "2024-05-23",
-                startTime: "11:00",
-                endTime: "12:30",
-                students: 6,
-                maxStudents: 8,
-                status: "scheduled"
-            },
-            {
-                id: 6,
-                title: "Индивидуальный - Ольга",
-                type: "individual",
-                trainer: "Анна Смирнова",
-                date: "2024-05-24",
-                startTime: "13:00",
-                endTime: "14:00",
-                status: "scheduled"
-            }
-        ];
+<script src="/static/js/lesson_card_detail.js"></script>
+<script src="/static/js/lesson_calendar.js"></script>
 
-        let currentDate = new Date();
-        let selectedDate = new Date();
-        let daysList = [];
-
-        // Инициализация
-        document.addEventListener('DOMContentLoaded', function() {
-            generateDays();
-            renderDays();
-            selectDay(selectedDate);
-            updateDateRange();
-        });
-
-        // Генерация списка дней (30 дней вперед)
-        function generateDays() {
-            daysList = [];
-            const today = new Date();
-
-            for (let i = -7; i <= 30; i++) {
-                const date = new Date(today);
-                date.setDate(today.getDate() + i);
-                daysList.push(date);
-            }
-        }
-
-        // Отрисовка дней
-        function renderDays() {
-            const daysScroll = document.getElementById('days-scroll');
-            daysScroll.innerHTML = '';
-
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            daysList.forEach(date => {
-                const dayCard = document.createElement('div');
-                dayCard.className = 'day-card';
-                dayCard.dataset.date = formatDate(date);
-
-                const isToday = date.toDateString() === today.toDateString();
-                const isSelected = date.toDateString() === selectedDate.toDateString();
-
-                if (isToday) dayCard.classList.add('today');
-                if (isSelected) dayCard.classList.add('active');
-
-                // Подсчет уроков на этот день
-                const dayLessons = lessonsData.filter(lesson =>
-                    lesson.date === formatDate(date)
-                );
-
-                const dayName = date.toLocaleDateString('ru-RU', { weekday: 'short' });
-                const dayNumber = date.getDate();
-                const monthName = date.toLocaleDateString('ru-RU', { month: 'short' });
-
-                dayCard.innerHTML = `
-                    <div class="day-name">${dayName}</div>
-                    <div class="day-date">${dayNumber}</div>
-                    <div class="day-month">${monthName}</div>
-                    ${dayLessons.length > 0 ?
-                        `<div class="day-lessons-count">${dayLessons.length} урок${getRussianPlural(dayLessons.length)}</div>` :
-                        '<div class="day-lessons-count" style="opacity:0.5;">Нет уроков</div>'
-                    }
-                `;
-
-                dayCard.onclick = () => {
-                    selectDay(date);
-                };
-
-                daysScroll.appendChild(dayCard);
-            });
-
-            // Скролл к выбранному дню
-            setTimeout(() => {
-                const activeCard = document.querySelector('.day-card.active');
-                if (activeCard) {
-                    activeCard.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'nearest',
-                        inline: 'center'
-                    });
-                }
-            }, 100);
-        }
-
-        // Выбор дня
-        function selectDay(date) {
-            selectedDate = date;
-            renderDays();
-            renderTimeGrid();
-
-            // Обновление заголовка
-            const options = { weekday: 'long', day: 'numeric', month: 'long' };
-            document.getElementById('selected-day-title').textContent =
-                date.toLocaleDateString('ru-RU', options);
-
-            // Обновление количества уроков
-            const dayLessons = lessonsData.filter(lesson =>
-                lesson.date === formatDate(date)
-            );
-            document.getElementById('day-lessons-total').textContent =
-                `${dayLessons.length} урок${getRussianPlural(dayLessons.length)}`;
-        }
-
-        // Отрисовка сетки времени
-        function renderTimeGrid() {
-            const timeGrid = document.getElementById('time-grid');
-            timeGrid.innerHTML = '';
-
-            const dayLessons = lessonsData.filter(lesson =>
-                lesson.date === formatDate(selectedDate)
-            );
-
-            if (dayLessons.length === 0) {
-                timeGrid.innerHTML = `
-                    <div class="empty-day">
-                        <i class="fas fa-calendar-times"></i>
-                        <h3>Нет уроков на этот день</h3>
-                        <p>Добавьте новый урок или выберите другой день</p>
-                        <button class="btn btn-primary" onclick="window.location.href='/lessons/create/'">
-                            <i class="fas fa-plus"></i> Создать урок
-                        </button>
-                    </div>
-                `;
-                return;
-            }
-
-            // Создание часовых линий (с 8:00 до 21:00)
-            for (let hour = 8; hour <= 21; hour++) {
-                const hourLine = document.createElement('div');
-                hourLine.className = 'hour-line';
-                hourLine.style.top = `${(hour - 8) * 40}px`;
-
-                const hourLabel = document.createElement('div');
-                hourLabel.className = 'hour-label';
-                hourLabel.textContent = `${hour}:00`;
-                hourLabel.style.top = `${(hour - 8) * 40}px`;
-
-                timeGrid.appendChild(hourLine);
-                timeGrid.appendChild(hourLabel);
-            }
-
-            // Отрисовка уроков
-            dayLessons.forEach(lesson => {
-                const lessonItem = document.createElement('div');
-                lessonItem.className = `lesson-item lesson-${lesson.type}`;
-
-                // Позиционирование
-                const startTime = parseTime(lesson.startTime);
-                const endTime = parseTime(lesson.endTime);
-
-                const top = ((startTime.hours - 8) * 40) + (startTime.minutes / 60 * 40);
-                const height = ((endTime.hours - startTime.hours) * 40) +
-                              ((endTime.minutes - startTime.minutes) / 60 * 40);
-
-                lessonItem.style.top = `${top}px`;
-                lessonItem.style.height = `${height}px`;
-
-                // Заполнение содержимого
-                lessonItem.innerHTML = `
-                    <div class="lesson-type">${getLessonType(lesson.type)}</div>
-                    <div class="lesson-title">${lesson.title}</div>
-                    <div class="lesson-time">${lesson.startTime} - ${lesson.endTime}</div>
-                    <div class="lesson-trainer">
-                        <i class="fas fa-user"></i> ${lesson.trainer}
-                        ${lesson.type === 'group' ?
-                            `<span style="margin-left: auto;">
-                                <i class="fas fa-users"></i> ${lesson.students}/${lesson.maxStudents}
-                            </span>` : ''
-                        }
-                    </div>
-                `;
-
-                lessonItem.onclick = () => {
-                    window.location.href = `/lesson/${lesson.id}/`;
-                };
-
-                timeGrid.appendChild(lessonItem);
-            });
-        }
-
-        // Прокрутка дней
-        function scrollDays(direction) {
-            const daysScroll = document.getElementById('days-scroll');
-            const scrollAmount = 200 * direction;
-            daysScroll.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-        }
-
-        // Переход на сегодня
-        function goToday() {
-            const today = new Date();
-            selectDay(today);
-
-            // Добавление сегодняшнего дня в список если его нет
-            const todayStr = formatDate(today);
-            if (!daysList.some(d => formatDate(d) === todayStr)) {
-                generateDays();
-                renderDays();
-            }
-        }
-
-        // Обновление диапазона дат
-        function updateDateRange() {
-            const firstDay = daysList[0];
-            const lastDay = daysList[daysList.length - 1];
-
-            const firstStr = firstDay.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
-            const lastStr = lastDay.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
-            const year = firstDay.getFullYear();
-
-            document.getElementById('date-range').textContent =
-                `${firstStr} - ${lastStr} ${year}`;
-        }
-
-        // Поиск
-        function performSearch() {
-            const searchText = document.getElementById('search-input').value.trim();
-            if (searchText) {
-                alert(`Поиск: "${searchText}"\nВ реальном приложении здесь будет фильтрация уроков`);
-            }
-        }
-
-        // Вспомогательные функции
-        function formatDate(date) {
-            return date.toISOString().split('T')[0];
-        }
-
-        function parseTime(timeStr) {
-            const [hours, minutes] = timeStr.split(':').map(Number);
-            return { hours, minutes };
-        }
-
-        function getLessonType(type) {
-            const types = {
-                'group': 'Групповой',
-                'individual': 'Индивидуальный',
-                'trial': 'Пробный'
-            };
-            return types[type] || type;
-        }
-
-        function getRussianPlural(count) {
-            if (count % 10 === 1 && count % 100 !== 11) return '';
-            if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) return 'а';
-            return 'ов';
-        }
-
-        // Автоматическая прокрутка при наведении на края
-        const daysScroll = document.getElementById('days-scroll');
-        let scrollInterval;
-
-        daysScroll.addEventListener('mouseenter', () => {
-            daysScroll.addEventListener('mousemove', handleScrollOnHover);
-        });
-
-        daysScroll.addEventListener('mouseleave', () => {
-            daysScroll.removeEventListener('mousemove', handleScrollOnHover);
-            clearInterval(scrollInterval);
-        });
-
-        function handleScrollOnHover(e) {
-            const rect = daysScroll.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const scrollZone = 50; // пиксели от края
-
-            clearInterval(scrollInterval);
-
-            if (mouseX < scrollZone) {
-                scrollInterval = setInterval(() => {
-                    daysScroll.scrollBy({ left: -10 });
-                }, 20);
-            } else if (mouseX > rect.width - scrollZone) {
-                scrollInterval = setInterval(() => {
-                    daysScroll.scrollBy({ left: 10 });
-                }, 20);
-            }
-        }
-    </script>
 {% endblock %}

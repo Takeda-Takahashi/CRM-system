@@ -48,6 +48,33 @@ def profile_page(request):
 def lessons_page(request):
     return render(request, 'lessons_calendar.html')
 
+def student_card_page(request, student_id):
+    context = {
+        'student_id': student_id,
+    }
+    return render(request, 'card.html', context)
+
+
+def clients_page(request):
+    """Страница со списком учеников"""
+    from core.models import Participants  # Импортируем модель
+    from django.core.paginator import Paginator
+
+    # Получаем всех участников (учеников)
+    participants_list = Participants.objects.all().order_by('last_name', 'first_name')
+
+    # Пагинация
+    paginator = Paginator(participants_list, 20)  # 20 на страницу
+    page_number = request.GET.get('page')
+    participants = paginator.get_page(page_number)
+
+    # Передаем данные в шаблон
+    context = {
+        'students': participants,  # Для шаблона используем переменную 'students'
+    }
+
+    return render(request, 'students_list.html', context)
+
 # === Основные маршруты ===
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -65,7 +92,7 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
     # Профиль текущего пользователя - ВАЖНО: фронтенд ожидает /api/profile/
-    path('api/profile/', CurrentUserProfile.as_view(), name='profile'),  # ← ИЗМЕНИТЕ НА profile/
+    path('api/profile/', CurrentUserProfile.as_view(), name='profile'),
 
     # HTML страницы
     path('login/', login_page, name='login'),
@@ -74,6 +101,8 @@ urlpatterns = [
     path('api/me/', CurrentUserProfile.as_view(), name='current-user'),
     path('api/profile/', CurrentUserProfile.as_view(), name='profile'),
     path('lessons/', lessons_page, name='lessons'),
+    path('clients/', clients_page, name='clients'),
+    path('students/<int:student_id>/card/', student_card_page, name='student_card'),
     # Главная → логин
     path('', login_page),
 ]

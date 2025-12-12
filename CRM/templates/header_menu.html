@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -9,6 +10,7 @@
     <link rel="stylesheet" href="/static/css/profile_style.css">
     <link rel="stylesheet" href="/static/css/students_card_style.css">
     <link rel="stylesheet" href="/static/css/lessons_style.css">
+    <link rel="stylesheet" href="/static/css/students_style.css">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -27,7 +29,7 @@
             <div class="search-container">
                 <input type="text"
                        class="search-input"
-                       placeholder="Поиск клиента или лида по имени..."
+                       placeholder="    Поиск клиента или лида по имени..."
                        id="search-input">
                 <div class="search-icon" onclick="performSearch()">
                     <i class="fas fa-search"></i>
@@ -59,6 +61,10 @@
                         <a href="/subscriptions/" class="menu-item">
                             <i class="fas fa-credit-card"></i>
                             <span>Абонементы</span>
+                        </a>
+                        <a href="/subscriptions/" class="menu-item">
+                            <i class="fas fa-lock"></i>
+                            <span>Шкафы</span>
                         </a>
                         <div class="menu-divider"></div>
                         <a href="/groups/" class="menu-item">

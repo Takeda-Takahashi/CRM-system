@@ -1,0 +1,179 @@
+
+<div class="lesson-card-small" data-lesson-id="{{ lesson.id }}">
+    <div class="lesson-header">
+        <div class="lesson-type-badge lesson-type-{{ lesson.type }}">
+            {{ lesson.get_type_display|default:lesson.type }}
+        </div>
+        <div class="lesson-time">
+            {{ lesson.start_time|time:"H:i" }} - {{ lesson.end_time|time:"H:i" }}
+        </div>
+    </div>
+
+    <div class="lesson-body">
+        <h4 class="lesson-title">{{ lesson.title }}</h4>
+
+        <div class="lesson-info">
+            <div class="info-item">
+                <i class="fas fa-clock"></i>
+                <span>{{ lesson.duration }} мин</span>
+            </div>
+
+            {% if lesson.max_participants %}
+            <div class="info-item">
+                <i class="fas fa-users"></i>
+                <span>{{ lesson.current_participants }}/{{ lesson.max_participants }}</span>
+            </div>
+            {% endif %}
+
+            <div class="info-item">
+                <i class="fas fa-user-tie"></i>
+                <span>{{ lesson.trainer.name|default:lesson.trainer }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="lesson-status {{ lesson.status }}">
+        {% if lesson.status == 'scheduled' %}
+            <i class="fas fa-clock"></i> Запланирован
+        {% elif lesson.status == 'in_progress' %}
+            <i class="fas fa-play-circle"></i> Идет
+        {% elif lesson.status == 'completed' %}
+            <i class="fas fa-check-circle"></i> Завершен
+        {% elif lesson.status == 'cancelled' %}
+            <i class="fas fa-times-circle"></i> Отменен
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .lesson-card-small {
+        background: white;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-left: 4px solid #3498db;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .lesson-card-small:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .lesson-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .lesson-type-badge {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .lesson-type-group {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+
+    .lesson-type-individual {
+        background: #e8f5e9;
+        color: #388e3c;
+    }
+
+    .lesson-type-trial {
+        background: #fff3e0;
+        color: #f57c00;
+    }
+
+    .lesson-time {
+        font-size: 14px;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .lesson-title {
+        margin: 0 0 10px 0;
+        font-size: 16px;
+        color: #2c3e50;
+        font-weight: 700;
+    }
+
+    .lesson-info {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 10px;
+    }
+
+    .info-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 13px;
+        color: #7f8c8d;
+    }
+
+    .info-item i {
+        color: #3498db;
+    }
+
+    .lesson-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .lesson-status.scheduled {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+
+    .lesson-status.in_progress {
+        background: #fff3e0;
+        color: #f57c00;
+    }
+
+    .lesson-status.completed {
+        background: #e8f5e9;
+        color: #388e3c;
+    }
+
+    .lesson-status.cancelled {
+        background: #ffebee;
+        color: #d32f2f;
+    }
+
+    /* Цвета для разных типов оружия */
+    .lesson-card-small[data-weapon="rapier"] {
+        border-left-color: #3498db;
+    }
+
+    .lesson-card-small[data-weapon="longsword"] {
+        border-left-color: #2ecc71;
+    }
+
+    .lesson-card-small[data-weapon="saber"] {
+        border-left-color: #e74c3c;
+    }
+
+    .lesson-card-small[data-weapon="smallsword"] {
+        border-left-color: #9b59b6;
+    }
+
+    .lesson-card-small[data-weapon="epee"] {
+        border-left-color: #f39c12;
+    }
+</style>

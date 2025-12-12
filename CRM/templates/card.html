@@ -1,13 +1,14 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Карточка ученика - CRM</title>
+{% extends 'header_menu.html' %}
+{% load static %}
+
+{% block title %}CRM — Ученики{% endblock %}
+
+{% block extra_css %}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/students_card_style.css">
-</head>
-<body>
+{% endblock %}
+
+{% block content %}
     <div class="container">
         <!-- Шапка с кнопками -->
         <div class="header">
@@ -503,5 +504,4 @@
             // и так далее...
         }
     </script>
-</body>
-</html>
+{% endblock %}

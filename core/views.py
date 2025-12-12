@@ -4,7 +4,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from drf_spectacular.utils import extend_schema, extend_schema_view
-from rest_framework_simplejwt.authentication import JWTAuthentication  # ← ДОБАВЛЕНО
+from django.shortcuts import render
+from django.core.paginator import Paginator
+from rest_framework.response import Response
 
 from .models import (
     Participants, TariffPlans, Subscriptions, Payments,
@@ -44,6 +46,26 @@ class ParticipantsViewSet(viewsets.ModelViewSet):
     queryset = Participants.objects.all()
     serializer_class = ParticipantSerializer
     permission_classes = [AllowAny]
+
+
+# НОВАЯ view для HTML страницы
+def students_list_view(request):
+    """Отображение списка учеников в HTML"""
+    # Получаем всех участников из базы
+    participants_list = Participants.objects.all().order_by('last_name', 'first_name')
+
+    # Пагинация
+    paginator = Paginator(participants_list, 20)  # 20 участников на страницу
+    page_number = request.GET.get('page')
+    participants = paginator.get_page(page_number)
+
+    # Подготавливаем данные для шаблона
+    context = {
+        'students': participants,  # Переименовываем для шаблона
+        'page_obj': participants,  # Для пагинации
+    }
+
+    return render(request, 'students_list.html', context)
 
 
 # === ТАРИФНЫЕ ПЛАНЫ ===
