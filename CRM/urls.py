@@ -107,6 +107,8 @@ urlpatterns = [
     path('lockers/', views.lockers_list_view, name='lockers_list'),
     path('api/lockers/<int:locker_id>/update/', update_locker_view, name='update_locker'),
     path('api/lockers/', create_locker_view, name='create_locker'),
+    path('api/participants/available/', views.get_available_participants, name='available_participants'),
+    path('api/lockers/<int:locker_id>/delete/', views.delete_locker, name='delete_locker'),
     # Главная → логин
     path('', login_page),
 ]

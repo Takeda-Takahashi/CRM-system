@@ -249,6 +249,7 @@ def participant_card_view(request, participant_id):
     return render(request, 'card.html', context)
 
 
+
 def calculate_participant_statistics(participant):
     """Рассчитывает статистику по участнику"""
     stats = {
@@ -407,6 +408,7 @@ class LockersViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
 
 
+
 # === АРЕНДА ШКАФОВ ===
 class LockerRentalsViewSet(viewsets.ModelViewSet):
     queryset = LockerRentals.objects.all()
@@ -422,7 +424,7 @@ def lockers_list_view(request):
     from django.db.models import Q
 
     # Получаем все шкафчики с предзагрузкой связанных данных
-    lockers_list = Lockers.objects.all().order_by('zone', 'number')
+    lockers = Lockers.objects.all().order_by('zone', 'number')  # Исправлено: lockers вместо lockers_list
 
     # Получаем активные аренды
     active_rentals = LockerRentals.objects.filter(
@@ -437,52 +439,64 @@ def lockers_list_view(request):
             'participant': rental.participant
         }
 
-    # Добавляем вычисляемые поля к каждому шкафчику
-    for locker in lockers_list:
-        if locker.id in active_rental_dict:
-            locker.status = 'occupied'
-            locker.current_rental = active_rental_dict[locker.id]['rental']
-            locker.current_participant = active_rental_dict[locker.id]['participant']
-        else:
-            # Проверяем, есть ли другие статусы в самой модели Lockers
-            locker.status = 'available'  # По умолчанию свободен
-            locker.current_rental = None
-            locker.current_participant = None
-
     # Фильтрация
     zone = request.GET.get('zone')
     status_filter = request.GET.get('status')
     condition = request.GET.get('condition')
 
+    # Применяем фильтры КАЖДЫЙ РАЗ К QuerySet, а не к списку
     if zone:
-        lockers_list = lockers_list.filter(zone=zone)
+        lockers = lockers.filter(zone=zone)  # Исправлено: lockers вместо locker
+
+    if condition:
+        lockers = lockers.filter(condition=condition)
 
     # Применяем фильтр по статусу
     if status_filter:
         if status_filter == 'occupied':
             # Оставляем только занятые шкафчики
             occupied_ids = list(active_rental_dict.keys())
-            lockers_list = [l for l in lockers_list if l.id in occupied_ids]
+            # Фильтруем QuerySet по ID занятых шкафчиков
+            lockers = lockers.filter(id__in=occupied_ids)
         elif status_filter == 'available':
             # Оставляем только свободные шкафчики
             occupied_ids = list(active_rental_dict.keys())
-            lockers_list = [l for l in lockers_list if l.id not in occupied_ids]
-        # Для других статусов (reserved, maintenance) нужно добавить поле в модель
-
-    if condition:
-        lockers_list = lockers_list.filter(condition=condition)
+            # Фильтруем QuerySet по ID НЕ занятых шкафчиков
+            lockers = lockers.exclude(id__in=occupied_ids)
+        elif status_filter in ['reserved', 'maintenance']:
+            # Фильтруем по полю status в модели
+            lockers = lockers.filter(status=status_filter)
 
     # Получаем список уникальных зон для фильтра
     zones = Lockers.objects.exclude(
         Q(zone__isnull=True) | Q(zone='')
     ).values_list('zone', flat=True).distinct().order_by('zone')
 
+    # ТОЛЬКО ПОСЛЕ ВСЕХ ФИЛЬТРОВ преобразуем в список и добавляем арендаторов
+    lockers_list = []
+    for locker in lockers:
+        rental_info = active_rental_dict.get(locker.id)
+        if rental_info:
+            locker.current_rental = rental_info['rental']
+            locker.current_participant = rental_info['participant']
+            locker.status = 'occupied'
+        else:
+            locker.current_rental = None
+            locker.current_participant = None
+            # Если в модели есть поле status, используем его
+            locker.status = getattr(locker, 'status', 'available')
+        lockers_list.append(locker)
+
     # Статистика
     total_count = len(lockers_list)
     occupied_ids = list(active_rental_dict.keys())
     occupied_count = len(occupied_ids)
     available_count = total_count - occupied_count
-    maintenance_count = 0  # Можно добавить поле maintenance в модель
+    # Считаем шкафчики в ремонте, если есть такое поле в модели
+    if hasattr(Lockers, 'status'):
+        maintenance_count = lockers.filter(status='maintenance').count()
+    else:
+        maintenance_count = 0
 
     # Пагинация
     paginator = Paginator(lockers_list, 20)
@@ -503,6 +517,281 @@ def lockers_list_view(request):
 
     return render(request, 'lockers_list.html', context)
 
+
+from django.http import JsonResponse
+from django.db.models import Q
+from core.models import Participants  # Или как называется ваша модель участников
+
+
+def get_available_participants(request):
+    """
+    Возвращает список участников для выбора при назначении аренды
+    """
+    try:
+        # Получаем всех активных участников
+        participants = Participants.objects.filter(
+            is_active=True
+        ).order_by('last_name', 'first_name')
+
+        # Применяем поиск, если есть параметр search
+        search = request.GET.get('search', '')
+        if search:
+            participants = participants.filter(
+                Q(last_name__icontains=search) |
+                Q(first_name__icontains=search) |
+                Q(middle_name__icontains=search) |
+                Q(phone__icontains=search) |
+                Q(email__icontains=search)
+            )
+
+        # Преобразуем в список словарей
+        participants_list = []
+        for participant in participants:
+            participants_list.append({
+                'id': participant.id,
+                'last_name': participant.last_name or '',
+                'first_name': participant.first_name or '',
+                'middle_name': participant.middle_name or '',
+                'phone': participant.phone or '',
+                'email': participant.email or '',
+                'full_name': f"{participant.last_name} {participant.first_name} {participant.middle_name or ''}".strip(),
+            })
+
+        return JsonResponse({
+            'success': True,
+            'participants': participants_list
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from core.models import Lockers, LockerRentals
+
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def delete_locker(request, locker_id):
+    """
+    Удаляет шкафчик
+    """
+    try:
+        locker = Lockers.objects.get(id=locker_id)
+        locker_number = locker.number
+        locker.delete()
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Шкафчик №{locker_number} удален'
+        })
+
+    except Lockers.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Шкафчик не найден'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["PATCH"])
+def update_locker(request, locker_id):
+    """
+    Обновляет данные шкафчика
+    """
+    try:
+        locker = Lockers.objects.get(id=locker_id)
+
+        # Получаем данные из запроса
+        import json
+        data = json.loads(request.body)
+
+        # Обновляем поля
+        if 'number' in data:
+            locker.number = data['number']
+        if 'zone' in data:
+            locker.zone = data['zone'] if data['zone'] else None
+        if 'status' in data:
+            locker.status = data['status']
+        if 'condition' in data:
+            locker.condition = data['condition']
+        if 'monthly_rental_cost' in data:
+            locker.monthly_rental_cost = data['monthly_rental_cost'] if data['monthly_rental_cost'] else None
+        if 'notes' in data:
+            locker.notes = data['notes'] if data['notes'] else None
+
+        locker.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Данные обновлены',
+            'data': {
+                'id': locker.id,
+                'number': locker.number,
+                'zone': locker.zone,
+                'status': locker.status,
+                'condition': locker.condition,
+                'monthly_rental_cost': locker.monthly_rental_cost,
+                'notes': locker.notes
+            }
+        })
+
+    except Lockers.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Шкафчик не найден'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def create_locker(request):
+    """
+    Создает новый шкафчик
+    """
+    try:
+        import json
+        data = json.loads(request.body)
+
+        # Проверяем обязательные поля
+        if not data.get('number'):
+            return JsonResponse({
+                'success': False,
+                'error': 'Номер шкафчика обязателен'
+            }, status=400)
+
+        # Создаем шкафчик
+        locker = Lockers.objects.create(
+            number=data['number'],
+            zone=data.get('zone'),
+            condition=data.get('condition', 'good'),
+            status=data.get('status', 'available'),
+            monthly_rental_cost=data.get('monthly_rental_cost'),
+            notes=data.get('notes')
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Шкафчик создан',
+            'data': {
+                'id': locker.id,
+                'number': locker.number,
+                'zone': locker.zone,
+                'status': locker.status,
+                'condition': locker.condition,
+                'monthly_rental_cost': locker.monthly_rental_cost,
+                'notes': locker.notes
+            }
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def create_locker_rental(request):
+    """
+    Создает новую аренду шкафчика
+    """
+    try:
+        import json
+        data = json.loads(request.body)
+
+        # Проверяем обязательные поля
+        if not data.get('locker_id') or not data.get('participant_id'):
+            return JsonResponse({
+                'success': False,
+                'error': 'ID шкафчика и участника обязательны'
+            }, status=400)
+
+        # Создаем аренду
+        from django.utils import timezone
+
+        rental = LockerRentals.objects.create(
+            locker_id=data['locker_id'],
+            participant_id=data['participant_id'],
+            start_date=data.get('start_date') or timezone.now().date(),
+            status='active'
+        )
+
+        # Обновляем статус шкафчика
+        locker = Lockers.objects.get(id=data['locker_id'])
+        locker.status = 'occupied'
+        locker.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Аренда создана',
+            'data': {
+                'id': rental.id,
+                'locker_id': rental.locker_id,
+                'participant_id': rental.participant_id,
+                'start_date': rental.start_date,
+                'status': rental.status
+            }
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def end_locker_rental(request, rental_id):
+    """
+    Завершает аренду шкафчика
+    """
+    try:
+        rental = LockerRentals.objects.get(id=rental_id)
+
+        # Завершаем аренду
+        from django.utils import timezone
+        rental.end_date = timezone.now().date()
+        rental.status = 'completed'
+        rental.save()
+
+        # Обновляем статус шкафчика
+        locker = rental.locker
+        locker.status = 'available'
+        locker.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Аренда завершена'
+        })
+
+    except LockerRentals.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Аренда не найдена'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 
 # views.py
 from rest_framework.decorators import api_view, permission_classes

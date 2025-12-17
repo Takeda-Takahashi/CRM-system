@@ -949,25 +949,256 @@ function editNotes(lockerId, currentNotes) {
 
 // === АРЕНДАТОРЫ И АРЕНДЫ ===
 function assignTenant(lockerId) {
-    // Здесь можно реализовать модальное окно для выбора участника
-    const tenantId = prompt('Введите ID участника для аренды:');
-    if (tenantId) {
-        createRental(lockerId, tenantId);
+    // Модальное окно для выбора участника
+    const modal = document.createElement('div');
+    modal.id = 'assign-tenant-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 1001;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    `;
+
+    modal.innerHTML = `
+        <div style="background: white; border-radius: 12px; padding: 30px; width: 500px; max-width: 90%;">
+            <h3 style="margin-bottom: 20px;"><i class="fas fa-user-plus"></i> Назначить арендатора</h3>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Выберите участника</label>
+                <select id="participant-select" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                    <option value="">Загрузка участников...</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Дата начала аренды</label>
+                <input type="date" id="start-date" value="${new Date().toISOString().split('T')[0]}"
+                       style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button onclick="document.body.removeChild(document.getElementById('assign-tenant-modal'))"
+                        style="padding: 10px 20px; background: #95a5a6; border: none; border-radius: 8px; color: white; cursor: pointer;">
+                    Отмена
+                </button>
+                <button onclick="confirmAssignTenant(${lockerId})"
+                        style="padding: 10px 20px; background: #3498db; border: none; border-radius: 8px; color: white; cursor: pointer;">
+                    Назначить
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Загружаем участников
+    loadParticipantsForAssignment(lockerId);
+}
+
+function loadParticipantsForAssignment(lockerId) {
+    fetch('/api/participants/available/')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('participant-select');
+            select.innerHTML = '<option value="">Выберите участника...</option>';
+
+            if (data.success && data.participants) {
+                data.participants.forEach(participant => {
+                    const option = document.createElement('option');
+                    option.value = participant.id;
+                    option.textContent = `${participant.last_name} ${participant.first_name} (${participant.phone || 'без телефона'})`;
+                    select.appendChild(option);
+                });
+            } else {
+                select.innerHTML = '<option value="">Нет доступных участников</option>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading participants:', error);
+            const select = document.getElementById('participant-select');
+            select.innerHTML = '<option value="">Ошибка загрузки</option>';
+        });
+}
+
+function confirmAssignTenant(lockerId) {
+    const participantId = document.getElementById('participant-select').value;
+    const startDate = document.getElementById('start-date').value;
+
+    if (!participantId) {
+        alert('Пожалуйста, выберите участника');
+        return;
     }
+
+    // Закрываем модальное окно
+    document.body.removeChild(document.getElementById('assign-tenant-modal'));
+
+    // Создаем аренду
+    createRental(lockerId, participantId, startDate);
 }
 
 function changeTenant(lockerId, currentTenantId) {
-    const newTenantId = prompt('Введите ID нового участника:');
-    if (newTenantId && newTenantId !== currentTenantId) {
-        updateRentalTenant(lockerId, newTenantId);
-    }
+    // Модальное окно для смены арендатора
+    const modal = document.createElement('div');
+    modal.id = 'change-tenant-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 1001;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    `;
+
+    modal.innerHTML = `
+        <div style="background: white; border-radius: 12px; padding: 30px; width: 500px; max-width: 90%;">
+            <h3 style="margin-bottom: 20px;"><i class="fas fa-exchange-alt"></i> Сменить арендатора</h3>
+
+            <div style="margin-bottom: 20px;">
+                <p>Текущий арендатор будет заменен на нового.</p>
+                <p style="color: #e74c3c; font-weight: 600;">Внимание: Это завершит текущую аренду и создаст новую!</p>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Выберите нового участника</label>
+                <select id="new-participant-select" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                    <option value="">Загрузка участников...</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button onclick="document.body.removeChild(document.getElementById('change-tenant-modal'))"
+                        style="padding: 10px 20px; background: #95a5a6; border: none; border-radius: 8px; color: white; cursor: pointer;">
+                    Отмена
+                </button>
+                <button onclick="confirmChangeTenant(${lockerId}, ${currentTenantId})"
+                        style="padding: 10px 20px; background: #e67e22; border: none; border-radius: 8px; color: white; cursor: pointer;">
+                    Сменить
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Загружаем участников (исключая текущего)
+    loadParticipantsForChange(lockerId, currentTenantId);
 }
 
-function editRentalEndDate(rentalId, currentDate) {
-    const newDate = prompt('Введите новую дату окончания аренды (YYYY-MM-DD):', currentDate || '');
-    if (newDate) {
-        updateRentalEndDate(rentalId, newDate);
+function loadParticipantsForChange(lockerId, currentTenantId) {
+    fetch('/api/participants/available/')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('new-participant-select');
+            select.innerHTML = '<option value="">Выберите нового участника...</option>';
+
+            if (data.success && data.participants) {
+                data.participants.forEach(participant => {
+                    if (participant.id != currentTenantId) {
+                        const option = document.createElement('option');
+                        option.value = participant.id;
+                        option.textContent = `${participant.last_name} ${participant.first_name} (${participant.phone || 'без телефона'})`;
+                        select.appendChild(option);
+                    }
+                });
+            } else {
+                select.innerHTML = '<option value="">Нет доступных участников</option>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading participants:', error);
+            const select = document.getElementById('new-participant-select');
+            select.innerHTML = '<option value="">Ошибка загрузки</option>';
+        });
+}
+
+function confirmChangeTenant(lockerId, currentTenantId) {
+    const newParticipantId = document.getElementById('new-participant-select').value;
+
+    if (!newParticipantId) {
+        alert('Пожалуйста, выберите нового участника');
+        return;
     }
+
+    // Закрываем модальное окно
+    document.body.removeChild(document.getElementById('change-tenant-modal'));
+
+    // Завершаем текущую аренду и создаем новую
+    changeTenantWithRental(lockerId, currentTenantId, newParticipantId);
+}
+
+// === УДАЛЕНИЕ ШКАФА ===
+function deleteLocker(event, lockerId, lockerNumber) {
+    if (event) event.stopPropagation();
+
+    if (!confirm(`Вы уверены, что хотите удалить шкаф №${lockerNumber}? Это действие нельзя отменить!`)) {
+        return;
+    }
+
+    // Показываем индикатор загрузки
+    const row = document.getElementById(`locker-row-${lockerId}`);
+    if (row) row.classList.add('deleting');
+
+    fetch(`/api/lockers/${lockerId}/delete/`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(`Шкаф №${lockerNumber} успешно удален`, 'success');
+
+            // Удаляем строку из таблицы
+            if (row) {
+                row.style.transition = 'all 0.3s ease';
+                row.style.opacity = '0';
+                row.style.transform = 'translateX(-100%)';
+
+                setTimeout(() => {
+                    row.remove();
+                    updateStatsAfterDelete();
+                }, 300);
+            } else {
+                // Если не нашли строку, перезагружаем страницу
+                setTimeout(() => location.reload(), 1000);
+            }
+        } else {
+            alert('Ошибка удаления: ' + (data.error || 'Неизвестная ошибка'));
+            if (row) row.classList.remove('deleting');
+        }
+    })
+    .catch(error => {
+        alert('Ошибка сети при удалении шкафа');
+        console.error('Error:', error);
+        if (row) row.classList.remove('deleting');
+    });
+}
+
+function updateStatsAfterDelete() {
+    // Обновляем статистику после удаления
+    fetch('/api/lockers/stats/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Обновляем значения в интерфейсе
+                document.querySelector('.stat-value:nth-child(1)').textContent = data.total || 0;
+                document.querySelector('.stat-value:nth-child(2)').textContent = data.available || 0;
+                document.querySelector('.stat-value:nth-child(3)').textContent = data.occupied || 0;
+                document.querySelector('.stat-value:nth-child(4)').textContent = data.maintenance || 0;
+            }
+        })
+        .catch(error => console.error('Error updating stats:', error));
 }
 
 // === СОЗДАНИЕ НОВОГО ШКАФЧИКА ===
@@ -1077,13 +1308,23 @@ function showNotification(message, type = 'info') {
 }
 
 function updateStats() {
-    // Здесь можно реализовать обновление статистики без перезагрузки страницы
-    // Например, сделать AJAX запрос за новыми данными
-    console.log('Stats should be updated...');
+    // Обновление статистики
+    fetch('/api/lockers/stats/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Обновляем значения в интерфейсе
+                document.querySelector('.stat-value:nth-child(1)').textContent = data.total || 0;
+                document.querySelector('.stat-value:nth-child(2)').textContent = data.available || 0;
+                document.querySelector('.stat-value:nth-child(3)').textContent = data.occupied || 0;
+                document.querySelector('.stat-value:nth-child(4)').textContent = data.maintenance || 0;
+            }
+        })
+        .catch(error => console.error('Error updating stats:', error));
 }
 
 // === API ФУНКЦИИ ===
-async function createRental(lockerId, participantId) {
+async function createRental(lockerId, participantId, startDate = null) {
     try {
         // Сначала меняем статус шкафчика на "занято"
         await updateLockerField(lockerId, 'status', 'occupied');
@@ -1097,7 +1338,7 @@ async function createRental(lockerId, participantId) {
             body: JSON.stringify({
                 locker: lockerId,
                 participant: participantId,
-                start_date: new Date().toISOString().split('T')[0],
+                start_date: startDate || new Date().toISOString().split('T')[0],
                 status: 'active'
             })
         });
@@ -1107,36 +1348,45 @@ async function createRental(lockerId, participantId) {
             showNotification('Аренда успешно создана', 'success');
             setTimeout(() => location.reload(), 1000);
         } else {
+            // Если не удалось создать аренду, возвращаем статус "свободно"
+            await updateLockerField(lockerId, 'status', 'available');
             alert('Ошибка создания аренды: ' + (data.error || 'Неизвестная ошибка'));
         }
     } catch (error) {
+        // Если ошибка сети, возвращаем статус "свободно"
+        await updateLockerField(lockerId, 'status', 'available');
         alert('Ошибка сети при создании аренды');
         console.error('Error:', error);
     }
 }
 
-async function updateRentalTenant(lockerId, newParticipantId) {
+async function changeTenantWithRental(lockerId, currentTenantId, newParticipantId) {
     try {
-        const response = await fetch(`/api/locker-rentals/active/${lockerId}/`, {
-            method: 'PATCH',
+        // Находим текущую активную аренду
+        const rentalResponse = await fetch(`/api/locker-rentals/active/${lockerId}/`);
+        const rentalData = await rentalResponse.json();
+
+        if (!rentalData.success || !rentalData.rental) {
+            alert('Не найдена активная аренда для этого шкафа');
+            return;
+        }
+
+        const rentalId = rentalData.rental.id;
+
+        // Завершаем текущую аренду
+        await fetch(`/api/locker-rentals/${rentalId}/end/`, {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({
-                participant: newParticipantId
-            })
+            }
         });
 
-        const data = await response.json();
-        if (data.success) {
-            showNotification('Арендатор успешно изменен', 'success');
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            alert('Ошибка изменения арендатора: ' + (data.error || 'Неизвестная ошибка'));
-        }
+        // Создаем новую аренду
+        await createRental(lockerId, newParticipantId);
+
     } catch (error) {
-        alert('Ошибка сети при изменении арендатора');
+        alert('Ошибка при смене арендатора');
         console.error('Error:', error);
     }
 }
@@ -1212,6 +1462,61 @@ style.textContent = `
             transform: translateX(100%);
             opacity: 0;
         }
+    }
+
+    .deleting {
+        opacity: 0.5;
+        background-color: #ffeaea !important;
+    }
+
+    .editable-select {
+        width: 100%;
+        padding: 5px;
+        border: 2px solid #3498db;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .editable-input {
+        width: 100%;
+        padding: 5px;
+        border: 2px solid #3498db;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .editable-textarea {
+        width: 100%;
+        padding: 5px;
+        border: 2px solid #3498db;
+        border-radius: 4px;
+        font-size: 14px;
+        resize: vertical;
+        min-height: 60px;
+    }
+
+    .edit-mode {
+        position: relative;
+    }
+
+    .saving::after {
+        content: 'Сохраняю...';
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 11px;
+        color: #3498db;
+    }
+
+    .saved::after {
+        content: '✓';
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 14px;
+        color: #27ae60;
     }
 `;
 document.head.appendChild(style);
