@@ -8,13 +8,14 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, Sp
 from django.conf import settings
 from django.conf.urls.static import static
 
+from core import views
 from core.views import (
     ParticipantsViewSet, TariffPlansViewSet, SubscriptionsViewSet,
     PaymentsViewSet, TrainingSessionsViewSet, TrainingAttendanceViewSet,
     EquipmentViewSet, EquipmentRentalsViewSet, EventsViewSet,
     EventParticipantsViewSet, PositionsViewSet, SystemUsersViewSet,
     ChangeLogsViewSet, LockersViewSet, LockerRentalsViewSet,
-    CurrentUserProfile, CustomLoginView
+    CurrentUserProfile, CustomLoginView, participant_card_view, update_locker_view, create_locker_view
 )
 
 # === Роутер DRF ===
@@ -102,7 +103,10 @@ urlpatterns = [
     path('api/profile/', CurrentUserProfile.as_view(), name='profile'),
     path('lessons/', lessons_page, name='lessons'),
     path('clients/', clients_page, name='clients'),
-    path('students/<int:student_id>/card/', student_card_page, name='student_card'),
+    path('students/<int:participant_id>/', participant_card_view, name='participant_card'),
+    path('lockers/', views.lockers_list_view, name='lockers_list'),
+    path('api/lockers/<int:locker_id>/update/', update_locker_view, name='update_locker'),
+    path('api/lockers/', create_locker_view, name='create_locker'),
     # Главная → логин
     path('', login_page),
 ]

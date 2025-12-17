@@ -101,9 +101,6 @@
                                     {{ student.last_name }} {{ student.first_name }}
                                 </div>
                                 <div class="student-details">
-                                    <span class="student-age">
-                                        {{ student.age }} лет
-                                    </span>
                                     <span class="student-birthdate">
                                         {{ student.birth_date|date:"d.m.Y" }}
                                     </span>
@@ -237,7 +234,7 @@ function getCookie(name) {
 // Функция для открытия карточки ученика
 function openStudentCard(studentId) {
     console.log('Открываем карточку ученика ID:', studentId);
-    window.location.href = `/students/${studentId}/card/`;
+    window.location.href = `/students/${studentId}/`;
 }
 
 // Функция для удаления ученика

@@ -68,6 +68,249 @@ def students_list_view(request):
     return render(request, 'students_list.html', context)
 
 
+from django.shortcuts import render, get_object_or_404
+from .models import Participants, Subscriptions, Payments, Lockers
+
+from django.shortcuts import render, get_object_or_404
+from django.db.models import Sum, Count, Avg
+from django.utils import timezone
+from datetime import timedelta
+from .models import Participants, Subscriptions, Payments, TrainingSessions, TrainingAttendance, LockerRentals, \
+    SystemUsers, EventParticipants, Events
+
+
+def participant_card_view(request, participant_id):
+    # Получаем участника из базы данных
+    participant = get_object_or_404(Participants, id=participant_id)
+
+    # Получаем связанные данные
+    # Абонементы
+    subscriptions = Subscriptions.objects.filter(participant=participant)
+
+    # Платежи - ДВА ОТДЕЛЬНЫХ QUERYSET
+    payments_all = Payments.objects.filter(participant=participant)
+    payments = payments_all.order_by('-payment_date')[:10]  # Только для отображения
+
+    # Тренировки (группы)
+    training_sessions = TrainingSessions.objects.filter(
+        trainingattendance__participant=participant
+    ).distinct().order_by('-datetime')
+
+    # Посещаемость тренировок
+    attendance_records = TrainingAttendance.objects.filter(
+        participant=participant
+    ).order_by('-session__datetime')
+
+    # Шкафчики
+    locker_rentals = LockerRentals.objects.filter(
+        participant=participant
+    ).order_by('-start_date')
+
+    # Мероприятия
+    event_participations = EventParticipants.objects.filter(
+        participant=participant
+    ).order_by('-registration_date')
+
+    # Тренер (если участник является тренером)
+    is_trainer = False
+    if participant.participant_type == 'trainer':
+        is_trainer = True
+        # Получаем тренировки, которые ведет этот тренер
+        training_sessions_led = TrainingSessions.objects.filter(
+            trainer=participant
+        ).order_by('-datetime')
+
+    # Рассчитываем статистику
+    active_subscriptions = subscriptions.filter(status='active')
+    total_cost = sum(sub.tariff_plan.price for sub in active_subscriptions if sub.tariff_plan and sub.tariff_plan.price)
+
+    # Посещаемость
+    total_attended = attendance_records.filter(attended=True).count()
+    total_sessions = attendance_records.count()
+    attendance_percentage = (total_attended / total_sessions * 100) if total_sessions > 0 else 0
+
+    # Средняя оценка
+    avg_rating = attendance_records.filter(rating__isnull=False).aggregate(avg=Avg('rating'))['avg']
+
+    # Активные аренды
+    active_locker_rentals = locker_rentals.filter(status='active')
+
+    # Рассчитываем возраст
+    age = None
+    if participant.birth_date:
+        today = timezone.now().date()
+        age = today.year - participant.birth_date.year - (
+                (today.month, today.day) < (participant.birth_date.month, participant.birth_date.day)
+        )
+
+    # Получаем системного пользователя (если есть)
+    system_user = SystemUsers.objects.filter(member=participant).first()
+
+    # шкафы
+    locker_rental = locker_rentals.first() if locker_rentals.exists() else None
+    locker_obj = locker_rental.locker if locker_rental else None
+
+    # Формируем контекст для шаблона
+    context = {
+        'student': participant,
+        'subscriptions': subscriptions,
+        'payments': payments,
+        'training_sessions': training_sessions,
+        'attendance_records': attendance_records,
+        'locker_rentals': locker_rentals,
+        'locker_rental': locker_rental,  # объект LockerRentals
+        'locker': locker_obj,  # объект Lockers (сам шкаф)
+        'event_participations': event_participations,
+        'active_subscriptions_count': active_subscriptions.count(),
+        'total_cost': total_cost,
+        'total_sessions': total_sessions,
+        'total_attended': total_attended,
+        'attendance_percentage': round(attendance_percentage, 1),
+        'avg_rating': round(avg_rating, 1) if avg_rating else None,
+        'active_locker_rentals_count': active_locker_rentals.count(),
+        'age': age,
+        'system_user': system_user,
+        'is_trainer': is_trainer,
+    }
+
+    # Добавляем данные о тренировках тренера, если участник - тренер
+    if is_trainer:
+        context['training_sessions_led'] = training_sessions_led
+        context['trainer_sessions_count'] = training_sessions_led.count()
+        context['trainer_upcoming_sessions'] = training_sessions_led.filter(
+            datetime__gte=timezone.now()
+        ).count()
+
+    # Группируем абонементы по статусам для шаблона
+    subscription_statuses = {
+        'active': subscriptions.filter(status='active'),
+        'pending': subscriptions.filter(status='pending'),
+        'expired': subscriptions.filter(status='expired'),
+        'cancelled': subscriptions.filter(status='cancelled'),
+    }
+    context['subscription_statuses'] = subscription_statuses
+
+    # Получаем последние заметки из разных источников
+    notes_list = []
+
+    # Заметки из модели Participants
+    if participant.notes:
+        notes_list.append({
+            'date': participant.updated_at,
+            'content': participant.notes,
+            'source': 'Профиль',
+            'type': 'general'
+        })
+
+    # Заметки из посещаемости
+    for attendance in attendance_records.filter(notes__isnull=False):
+        notes_list.append({
+            'date': attendance.created_at,
+            'content': attendance.notes,
+            'source': f'Тренировка: {attendance.session.topic}',
+            'type': 'attendance'
+        })
+
+    # Заметки из платежей
+    for payment in payments_all.filter(notes__isnull=False):
+        notes_list.append({
+            'date': payment.created_at,
+            'content': payment.notes,
+            'source': f'Платёж: {payment.amount} руб.',
+            'type': 'payment'
+        })
+
+    # Сортируем заметки по дате
+    notes_list.sort(key=lambda x: x['date'], reverse=True)
+    context['all_notes'] = notes_list[:20]  # Ограничиваем 20 заметками
+
+    # Подготавливаем данные для графиков (если нужно)
+    # Последние 30 дней посещаемости
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    recent_attendance = attendance_records.filter(
+        session__datetime__gte=thirty_days_ago
+    ).order_by('session__datetime')
+
+    attendance_by_date = {}
+    for record in recent_attendance:
+        date_str = record.session.datetime.date().isoformat()
+        if date_str not in attendance_by_date:
+            attendance_by_date[date_str] = {'attended': 0, 'total': 0}
+        attendance_by_date[date_str]['total'] += 1
+        if record.attended:
+            attendance_by_date[date_str]['attended'] += 1
+
+    context['attendance_chart_data'] = {
+        'dates': list(attendance_by_date.keys()),
+        'attended': [data['attended'] for data in attendance_by_date.values()],
+        'total': [data['total'] for data in attendance_by_date.values()]
+    }
+
+    return render(request, 'card.html', context)
+
+
+def calculate_participant_statistics(participant):
+    """Рассчитывает статистику по участнику"""
+    stats = {
+        'total_spent': 0,
+        'subscriptions_history': [],
+        'equipment_rentals': [],
+        'event_history': []
+    }
+
+    # Общая сумма потраченных денег
+    payments_total = Payments.objects.filter(
+        participant=participant,
+        status='completed'
+    ).aggregate(total=Sum('amount'))['total']
+
+    stats['total_spent'] = payments_total or 0
+
+    # История абонементов
+    subscriptions = Subscriptions.objects.filter(
+        participant=participant
+    ).select_related('tariff_plan').order_by('-start_date')
+
+    for sub in subscriptions:
+        stats['subscriptions_history'].append({
+            'id': sub.id,
+            'name': sub.tariff_plan.name,
+            'start_date': sub.start_date,
+            'end_date': sub.end_date,
+            'status': sub.status,
+            'price': sub.tariff_plan.price,
+            'auto_renew': sub.auto_renew
+        })
+
+    return stats
+
+
+def get_participant_contacts(participant):
+    """Получает контактную информацию участника"""
+    contacts = {
+        'primary': {
+            'phone': participant.phone,
+            'email': participant.email,
+            'address': participant.address
+        },
+        'emergency': {
+            'contact': participant.emergency_contact,
+            'phone': participant.emergency_phone
+        }
+    }
+
+    # Если есть системный пользователь, добавляем его данные
+    system_user = SystemUsers.objects.filter(member=participant).first()
+    if system_user:
+        contacts['system'] = {
+            'username': system_user.username,
+            'email': system_user.email,
+            'role': system_user.role
+        }
+
+    return contacts
+
+
 # === ТАРИФНЫЕ ПЛАНЫ ===
 @extend_schema_view(
     list=extend_schema(summary="Список тарифов"),
@@ -171,6 +414,173 @@ class LockerRentalsViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
 
 
+# views.py
+# views.py
+def lockers_list_view(request):
+    """Страница со списком шкафчиков"""
+    from django.core.paginator import Paginator
+    from django.db.models import Q
+
+    # Получаем все шкафчики с предзагрузкой связанных данных
+    lockers_list = Lockers.objects.all().order_by('zone', 'number')
+
+    # Получаем активные аренды
+    active_rentals = LockerRentals.objects.filter(
+        Q(status='active') | Q(status='occupied')
+    ).select_related('participant', 'locker')
+
+    # Создаем словарь для быстрого доступа к активным арендам
+    active_rental_dict = {}
+    for rental in active_rentals:
+        active_rental_dict[rental.locker_id] = {
+            'rental': rental,
+            'participant': rental.participant
+        }
+
+    # Добавляем вычисляемые поля к каждому шкафчику
+    for locker in lockers_list:
+        if locker.id in active_rental_dict:
+            locker.status = 'occupied'
+            locker.current_rental = active_rental_dict[locker.id]['rental']
+            locker.current_participant = active_rental_dict[locker.id]['participant']
+        else:
+            # Проверяем, есть ли другие статусы в самой модели Lockers
+            locker.status = 'available'  # По умолчанию свободен
+            locker.current_rental = None
+            locker.current_participant = None
+
+    # Фильтрация
+    zone = request.GET.get('zone')
+    status_filter = request.GET.get('status')
+    condition = request.GET.get('condition')
+
+    if zone:
+        lockers_list = lockers_list.filter(zone=zone)
+
+    # Применяем фильтр по статусу
+    if status_filter:
+        if status_filter == 'occupied':
+            # Оставляем только занятые шкафчики
+            occupied_ids = list(active_rental_dict.keys())
+            lockers_list = [l for l in lockers_list if l.id in occupied_ids]
+        elif status_filter == 'available':
+            # Оставляем только свободные шкафчики
+            occupied_ids = list(active_rental_dict.keys())
+            lockers_list = [l for l in lockers_list if l.id not in occupied_ids]
+        # Для других статусов (reserved, maintenance) нужно добавить поле в модель
+
+    if condition:
+        lockers_list = lockers_list.filter(condition=condition)
+
+    # Получаем список уникальных зон для фильтра
+    zones = Lockers.objects.exclude(
+        Q(zone__isnull=True) | Q(zone='')
+    ).values_list('zone', flat=True).distinct().order_by('zone')
+
+    # Статистика
+    total_count = len(lockers_list)
+    occupied_ids = list(active_rental_dict.keys())
+    occupied_count = len(occupied_ids)
+    available_count = total_count - occupied_count
+    maintenance_count = 0  # Можно добавить поле maintenance в модель
+
+    # Пагинация
+    paginator = Paginator(lockers_list, 20)
+    page_number = request.GET.get('page')
+    lockers_page = paginator.get_page(page_number)
+
+    context = {
+        'lockers': lockers_page,
+        'total_count': total_count,
+        'available_count': available_count,
+        'occupied_count': occupied_count,
+        'maintenance_count': maintenance_count,
+        'zones': zones,
+        'selected_zone': zone,
+        'selected_status': status_filter,
+        'selected_condition': condition,
+    }
+
+    return render(request, 'lockers_list.html', context)
+
+
+# views.py
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework import status
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+
+@api_view(['PATCH'])
+@csrf_exempt
+def update_locker_view(request, locker_id):
+    """Обновление информации о шкафчике"""
+    try:
+        locker = Lockers.objects.get(id=locker_id)
+        data = request.data
+
+        # Обновляем разрешенные поля
+        allowed_fields = ['number', 'zone', 'condition', 'monthly_rental_cost', 'notes']
+        for field in allowed_fields:
+            if field in data:
+                setattr(locker, field, data[field] if data[field] != '' else None)
+
+        locker.save()
+
+        return Response({
+            'success': True,
+            'data': {
+                'id': locker.id,
+                'number': locker.number,
+                'zone': locker.zone,
+                'condition': locker.condition,
+                'monthly_rental_cost': str(locker.monthly_rental_cost) if locker.monthly_rental_cost else None,
+                'notes': locker.notes
+            }
+        })
+
+    except Lockers.DoesNotExist:
+        return Response({'success': False, 'error': 'Шкафчик не найден'}, status=404)
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=400)
+
+
+@api_view(['POST'])
+@csrf_exempt
+def create_locker_view(request):
+    """Создание нового шкафчика"""
+    try:
+        data = request.data
+
+        # Проверяем обязательные поля
+        if 'number' not in data or not data['number']:
+            return Response({'success': False, 'error': 'Номер шкафчика обязателен'}, status=400)
+
+        # Проверяем уникальность номера
+        if Lockers.objects.filter(number=data['number']).exists():
+            return Response({'success': False, 'error': 'Шкафчик с таким номером уже существует'}, status=400)
+
+        locker = Lockers.objects.create(
+            number=data['number'],
+            zone=data.get('zone'),
+            condition=data.get('condition', 'good'),
+            monthly_rental_cost=data.get('monthly_rental_cost'),
+            notes=data.get('notes')
+        )
+
+        return Response({
+            'success': True,
+            'data': {
+                'id': locker.id,
+                'number': locker.number,
+                'zone': locker.zone,
+                'condition': locker.condition
+            }
+        })
+
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=400)
 # === ТЕКУЩИЙ ПОЛЬЗОВАТЕЛЬ ===
 # core/views.py
 # core/views.py

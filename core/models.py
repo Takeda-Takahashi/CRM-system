@@ -226,7 +226,6 @@ class Subscriptions(models.Model):
 
 
 # === СИСТЕМНЫЕ ПОЛЬЗОВАТЕЛИ (с паролем) ===
-# core/models.py
 class SystemUsers(models.Model):
     username = models.CharField(unique=True, max_length=50)
     password_hash = models.CharField(max_length=255)  # хэш пароля
@@ -237,11 +236,9 @@ class SystemUsers(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # ДОБАВЬТЕ ЭТИ АТРИБУТЫ ДЛЯ СОВМЕСТИМОСТИ С DJANGO AUTH
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
 
-    # Добавьте эти методы для совместимости
     @property
     def is_authenticated(self):
         return True

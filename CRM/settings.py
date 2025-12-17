@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'core.apps.CoreConfig',
+    'django.contrib.humanize',
     'rest_framework',
     'drf_spectacular',
     'drf_spectacular_sidecar',

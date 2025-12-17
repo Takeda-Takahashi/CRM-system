@@ -1,0 +1,1219 @@
+{% extends 'header_menu.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}CRM — Шкафчики{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="/static/css/lockers_style.css"/>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Заголовок страницы -->
+    <div class="page-header">
+        <h1><i class="fas fa-lock"></i> Список шкафчиков</h1>
+        <div class="header-actions">
+            <button class="btn btn-primary" onclick="showAddLockerForm()" style="
+                padding: 12px 24px;
+                background: linear-gradient(135deg, #3498db, #2980b9);
+                border: none;
+                border-radius: 8px;
+                color: white;
+                font-weight: 600;
+                text-decoration: none;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+                cursor: pointer;
+            ">
+                <i class="fas fa-plus"></i> Добавить шкафчик
+            </button>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="stats-container">
+        <div class="stat-card">
+            <div class="stat-icon stat-icon-total">
+                <i class="fas fa-lock"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ total_count }}</div>
+                <div class="stat-label">Всего шкафчиков</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon stat-icon-available">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ available_count }}</div>
+                <div class="stat-label">Свободно</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon stat-icon-occupied">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ occupied_count }}</div>
+                <div class="stat-label">Занято</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon stat-icon-maintenance">
+                <i class="fas fa-tools"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ maintenance_count }}</div>
+                <div class="stat-label">В ремонте</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="filters-container">
+        <div class="filter-group">
+            <label for="zone_filter"><i class="fas fa-map-marker-alt"></i> Зона</label>
+            <select id="zone_filter" class="filter-select" onchange="filterLockers()">
+                <option value="">Все зоны</option>
+                {% for zone in zones %}
+                <option value="{{ zone }}" {% if selected_zone == zone %}selected{% endif %}>{{ zone }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="status_filter"><i class="fas fa-circle"></i> Статус</label>
+            <select id="status_filter" class="filter-select" onchange="filterLockers()">
+                <option value="">Все статусы</option>
+                <option value="available" {% if selected_status == 'available' %}selected{% endif %}>Свободно</option>
+                <option value="occupied" {% if selected_status == 'occupied' %}selected{% endif %}>Занято</option>
+                <option value="reserved" {% if selected_status == 'reserved' %}selected{% endif %}>Зарезервировано</option>
+                <option value="maintenance" {% if selected_status == 'maintenance' %}selected{% endif %}>В ремонте</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="condition_filter"><i class="fas fa-wrench"></i> Состояние</label>
+            <select id="condition_filter" class="filter-select" onchange="filterLockers()">
+                <option value="">Все состояния</option>
+                <option value="good" {% if selected_condition == 'good' %}selected{% endif %}>Хорошее</option>
+                <option value="average" {% if selected_condition == 'average' %}selected{% endif %}>Удовлетворительное</option>
+                <option value="poor" {% if selected_condition == 'poor' %}selected{% endif %}>Плохое</option>
+            </select>
+        </div>
+
+        <div class="filter-actions">
+            <button class="btn btn-secondary" onclick="resetFilters()" style="
+                padding: 10px 20px;
+                background: #95a5a6;
+                border: none;
+                border-radius: 8px;
+                color: white;
+                font-weight: 600;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            ">
+                <i class="fas fa-redo"></i> Сбросить
+            </button>
+        </div>
+    </div>
+
+    <!-- Таблица шкафчиков -->
+    <div class="students-table-container">
+        <table class="students-table">
+            <thead>
+                <tr>
+                    <th>Шкафчик</th>
+                    <th>Арендатор</th>
+                    <th>Статус</th>
+                    <th>Состояние</th>
+                    <th>Стоимость аренды</th>
+                    <th>Заметки</th>
+                    <th style="text-align: center;">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for locker in lockers %}
+                <tr class="locker-row" id="locker-row-{{ locker.id }}">
+                    <!-- Номер шкафчика (редактируемый) -->
+                    <td>
+                        <div class="student-info-cell" style="cursor: default;">
+                            <div class="locker-icon
+                                {% if locker.status == 'available' %}locker-icon-available
+                                {% elif locker.status == 'occupied' %}locker-icon-occupied
+                                {% elif locker.status == 'reserved' %}locker-icon-reserved
+                                {% else %}locker-icon-maintenance{% endif %}"
+                                onclick="editLockerIcon({{ locker.id }})"
+                                title="Изменить статус">
+                                <i class="fas fa-lock"></i>
+                            </div>
+                            <div class="student-name-container">
+                                <div class="student-name editable-field"
+                                     onclick="startEditing(this, {{ locker.id }}, 'number', '{{ locker.number|escapejs }}')">
+                                    Шкаф №<span id="locker-number-{{ locker.id }}">{{ locker.number }}</span>
+                                </div>
+                                <div class="student-details">
+                                    <span class="student-birthdate editable-field"
+                                          onclick="startEditing(this, {{ locker.id }}, 'zone', '{{ locker.zone|default:""|escapejs }}')">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        <span id="locker-zone-{{ locker.id }}">{{ locker.zone|default:"Без зоны" }}</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+
+                    <!-- Арендатор -->
+                    <td id="locker-tenant-{{ locker.id }}">
+                        {% if locker.current_rental and locker.current_rental.participant %}
+                        <div class="tenant-info">
+                            <div class="tenant-name">
+                                {{ locker.current_rental.participant.last_name }} {{ locker.current_rental.participant.first_name }}
+                            </div>
+                            {% if locker.current_rental.participant.phone %}
+                            <div style="color: #7f8c8d; font-size: 11px;">
+                                <i class="fas fa-phone"></i> {{ locker.current_rental.participant.phone }}
+                            </div>
+                            {% endif %}
+                            <button class="btn-action btn-edit" style="margin-top: 5px; width: 24px; height: 24px; font-size: 12px;"
+                                    onclick="changeTenant({{ locker.id }}, {{ locker.current_rental.participant.id }})"
+                                    title="Сменить арендатора">
+                                <i class="fas fa-exchange-alt"></i>
+                            </button>
+                        </div>
+                        {% elif locker.status == 'reserved' %}
+                        <span style="color: #f57c00; font-style: italic;">Зарезервирован</span>
+                        {% else %}
+                        <button class="btn-action btn-edit" style="width: 30px; height: 30px;"
+                                onclick="assignTenant({{ locker.id }})"
+                                title="Назначить арендатора">
+                            <i class="fas fa-user-plus"></i>
+                        </button>
+                        {% endif %}
+                    </td>
+
+                <!-- Статус (редактируемое) -->
+                    <td>
+                        <span class="editable-field status-{{ locker.status|default:'available' }}"
+                              onclick="editStatus({{ locker.id }})"
+                              id="locker-status-{{ locker.id }}">
+                            {% if locker.status == 'available' %}Свободно
+                            {% elif locker.status == 'occupied' %}Занято
+                            {% elif locker.status == 'reserved' %}Зарезервировано
+                            {% else %}В ремонте{% endif %}
+                        </span>
+                    </td>
+
+                    <!-- Состояние (редактируемое) -->
+                    <td>
+                        <span class="editable-field condition-{{ locker.condition|default:'good' }}"
+                              onclick="editCondition({{ locker.id }}, '{{ locker.condition|default:"good" }}')"
+                              id="locker-condition-{{ locker.id }}">
+                            {% if locker.condition == 'good' %}Хорошее
+                            {% elif locker.condition == 'average' %}Удовлетворительное
+                            {% elif locker.condition == 'poor' %}Плохое
+                            {% else %}Не указано{% endif %}
+                        </span>
+                    </td>
+
+
+
+                    <!-- Стоимость (редактируемая) -->
+                    <td>
+                        <div class="cost-cell editable-field"
+                             onclick="startEditing(this, {{ locker.id }}, 'monthly_rental_cost', '{{ locker.monthly_rental_cost|default:"" }}')"
+                             id="locker-cost-{{ locker.id }}">
+                            {% if locker.monthly_rental_cost %}
+                            {{ locker.monthly_rental_cost|intcomma }} ₽/мес
+                            {% else %}
+                            <span style="color: #95a5a6; font-style: italic;">—</span>
+                            {% endif %}
+                        </div>
+                    </td>
+
+                    <!-- Заметки (редактируемые) -->
+                    <td>
+                        <div class="editable-field"
+                             onclick="editNotes({{ locker.id }}, '{{ locker.notes|default:""|escapejs }}')"
+                             id="locker-notes-{{ locker.id }}"
+                             style="cursor: pointer;">
+                            {% if locker.notes %}
+                            <span title="{{ locker.notes }}" style="
+                                display: inline-block;
+                                max-width: 200px;
+                                white-space: nowrap;
+                                overflow: hidden;
+                                text-overflow: ellipsis;
+                                color: #7f8c8d;
+                            ">
+                                {{ locker.notes|truncatechars:50 }}
+                            </span>
+                            {% else %}
+                            <span style="color: #95a5a6; font-style: italic;">—</span>
+                            {% endif %}
+                        </div>
+                    </td>
+
+                    <!-- Действия -->
+                    <td>
+                        <div class="locker-actions">
+                            {% if locker.status != 'available' %}
+                            <button class="btn-action btn-edit"
+                                    onclick="endRental({{ locker.current_rental.id }})"
+                                    title="Завершить аренду">
+                                <i class="fas fa-sign-out-alt"></i>
+                            </button>
+                            {% endif %}
+
+                            <button class="btn-action btn-save"
+                                    onclick="saveAllChanges({{ locker.id }})"
+                                    title="Сохранить все изменения"
+                                    id="save-btn-{{ locker.id }}"
+                                    style="display: none;">
+                                <i class="fas fa-save"></i>
+                            </button>
+
+                            <button class="btn-action btn-cancel"
+                                    onclick="cancelEditing({{ locker.id }})"
+                                    title="Отменить изменения"
+                                    id="cancel-btn-{{ locker.id }}"
+                                    style="display: none;">
+                                <i class="fas fa-times"></i>
+                            </button>
+
+                            <button class="btn-action btn-delete"
+                                    onclick="deleteLocker(event, {{ locker.id }}, '{{ locker.number }}')"
+                                    title="Удалить">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="no-data-row">
+                        <div class="empty-state">
+                            <i class="fas fa-lock-open"></i>
+                            <h3>Нет шкафчиков</h3>
+                            <p>Добавьте первый шкафчик в систему</p>
+                            <button class="btn btn-primary" onclick="showAddLockerForm()" style="
+                                padding: 12px 24px;
+                                background: linear-gradient(135deg, #3498db, #2980b9);
+                                border: none;
+                                border-radius: 8px;
+                                color: white;
+                                font-weight: 600;
+                                text-decoration: none;
+                                display: inline-flex;
+                                align-items: center;
+                                gap: 10px;
+                                cursor: pointer;
+                            ">
+                                <i class="fas fa-plus"></i> Добавить шкафчик
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Пагинация -->
+        {% if lockers.has_other_pages %}
+        <div class="pagination">
+            {% if lockers.has_previous %}
+            <a href="?page={{ lockers.previous_page_number }}{% if selected_zone %}&zone={{ selected_zone }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_condition %}&condition={{ selected_condition }}{% endif %}">
+                <i class="fas fa-chevron-left"></i> Назад
+            </a>
+            {% endif %}
+
+            <span class="current">
+                Страница {{ lockers.number }} из {{ lockers.paginator.num_pages }}
+            </span>
+
+            {% if lockers.has_next %}
+            <a href="?page={{ lockers.next_page_number }}{% if selected_zone %}&zone={{ selected_zone }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_condition %}&condition={{ selected_condition }}{% endif %}">
+                Вперед <i class="fas fa-chevron-right"></i>
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Модальное окно для добавления шкафчика -->
+<div id="addLockerModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; border-radius: 12px; padding: 30px; width: 500px; max-width: 90%; max-height: 90%; overflow-y: auto;">
+        <h2 style="color: #2c3e50; margin-bottom: 20px;"><i class="fas fa-plus"></i> Добавить шкафчик</h2>
+
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; color: #2c3e50; font-weight: 600; margin-bottom: 5px;">Номер шкафчика</label>
+            <input type="text" id="new-locker-number" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; color: #2c3e50; font-weight: 600; margin-bottom: 5px;">Зона</label>
+            <input type="text" id="new-locker-zone" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; color: #2c3e50; font-weight: 600; margin-bottom: 5px;">Состояние</label>
+            <select id="new-locker-condition" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                <option value="good">Хорошее</option>
+                <option value="average">Удовлетворительное</option>
+                <option value="poor">Плохое</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; color: #2c3e50; font-weight: 600; margin-bottom: 5px;">Стоимость аренды (₽/мес)</label>
+            <input type="number" id="new-locker-cost" step="0.01" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+        </div>
+
+        <div style="margin-bottom: 25px;">
+            <label style="display: block; color: #2c3e50; font-weight: 600; margin-bottom: 5px;">Заметки</label>
+            <textarea id="new-locker-notes" rows="3" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; resize: vertical;"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button onclick="hideAddLockerForm()" style="
+                padding: 10px 20px;
+                background: #95a5a6;
+                border: none;
+                border-radius: 8px;
+                color: white;
+                font-weight: 600;
+                cursor: pointer;
+            ">
+                Отмена
+            </button>
+            <button onclick="createLocker()" style="
+                padding: 10px 20px;
+                background: linear-gradient(135deg, #3498db, #2980b9);
+                border: none;
+                border-radius: 8px;
+                color: white;
+                font-weight: 600;
+                cursor: pointer;
+            ">
+                <i class="fas fa-save"></i> Сохранить
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+// === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
+let originalValues = {};
+let currentEditElement = null;
+let currentEditLockerId = null;
+let currentEditField = null;
+let pendingChanges = {};
+
+// === ФИЛЬТРАЦИЯ И ОСНОВНЫЕ ФУНКЦИИ ===
+function filterLockers() {
+    const zone = document.getElementById('zone_filter').value;
+    const status = document.getElementById('status_filter').value;
+    const condition = document.getElementById('condition_filter').value;
+
+    let url = '{% url "lockers_list" %}?';
+    const params = [];
+
+    if (zone) params.push(`zone=${zone}`);
+    if (status) params.push(`status=${status}`);
+    if (condition) params.push(`condition=${condition}`);
+
+    if (params.length > 0) {
+        url += params.join('&');
+    }
+
+    window.location.href = url;
+}
+
+function resetFilters() {
+    window.location.href = '{% url "lockers_list" %}';
+}
+
+// === РЕДАКТИРОВАНИЕ ПОЛЕЙ ===
+function startEditing(element, lockerId, fieldName, currentValue) {
+    // Отменяем предыдущее редактирование, если есть
+    if (currentEditElement && currentEditLockerId !== lockerId) {
+        cancelEditing(currentEditLockerId);
+    }
+
+    // Сохраняем текущий контекст
+    currentEditElement = element;
+    currentEditLockerId = lockerId;
+    currentEditField = fieldName;
+
+    // Сохраняем оригинальное значение
+    if (!originalValues[lockerId]) {
+        originalValues[lockerId] = {};
+    }
+    originalValues[lockerId][fieldName] = currentValue || '';
+
+    // Создаем элемент для редактирования
+    let editElement;
+    if (fieldName === 'notes') {
+        editElement = document.createElement('textarea');
+        editElement.className = 'editable-textarea';
+        editElement.value = currentValue || '';
+        editElement.rows = 3;
+    } else if (fieldName === 'monthly_rental_cost') {
+        editElement = document.createElement('input');
+        editElement.type = 'number';
+        editElement.step = '0.01';
+        editElement.min = '0';
+        editElement.className = 'editable-input';
+        editElement.value = currentValue || '';
+    } else {
+        editElement = document.createElement('input');
+        editElement.type = 'text';
+        editElement.className = 'editable-input';
+        editElement.value = currentValue || '';
+    }
+
+    // Заменяем содержимое элемента
+    element.innerHTML = '';
+    element.appendChild(editElement);
+    element.classList.add('edit-mode');
+
+    // Показываем кнопки сохранения/отмены
+    document.getElementById(`save-btn-${lockerId}`).style.display = 'flex';
+    document.getElementById(`cancel-btn-${lockerId}`).style.display = 'flex';
+
+    // Фокус на элемент
+    editElement.focus();
+
+    // Обработчики событий
+    editElement.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            saveField(lockerId, fieldName, this.value);
+        } else if (e.key === 'Escape') {
+            cancelEditing(lockerId);
+        }
+    });
+
+    // Автосохранение при потере фокуса
+    editElement.addEventListener('blur', function () {
+        setTimeout(() => {
+            if (document.activeElement !== this && element.contains(this)) {
+                saveField(lockerId, fieldName, this.value);
+            }
+        }, 200);
+    });
+}
+
+function saveField(lockerId, fieldName, newValue) {
+    // Валидация
+    if (fieldName === 'monthly_rental_cost') {
+        const numValue = parseFloat(newValue);
+        if (isNaN(numValue) || numValue < 0) {
+            alert('Стоимость должна быть положительным числом');
+            cancelEditing(lockerId);
+            return;
+        }
+        newValue = numValue.toFixed(2);
+    }
+
+    if (fieldName === 'number' && !newValue.trim()) {
+        alert('Номер шкафчика не может быть пустым');
+        cancelEditing(lockerId);
+        return;
+    }
+
+    // Добавляем в ожидающие изменения
+    if (!pendingChanges[lockerId]) {
+        pendingChanges[lockerId] = {};
+    }
+    pendingChanges[lockerId][fieldName] = newValue;
+
+    // Показываем индикатор сохранения
+    const element = document.getElementById(`locker-${fieldName}-${lockerId}`);
+    if (element) {
+        const parent = element.closest('.editable-field') || element.parentElement;
+        if (parent) {
+            parent.classList.add('saving');
+        }
+    }
+
+    // Отправляем на сервер
+    updateLockerField(lockerId, fieldName, newValue);
+}
+
+async function updateLockerField(lockerId, fieldName, value) {
+    try {
+        const response = await fetch(`/api/lockers/${lockerId}/update/`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                [fieldName]: value
+            })
+        });
+
+        const data = await response.json();
+
+        // Убираем индикатор сохранения
+        const element = document.getElementById(`locker-${fieldName}-${lockerId}`);
+        if (element) {
+            const parent = element.closest('.editable-field') || element.parentElement;
+            if (parent) {
+                parent.classList.remove('saving');
+                parent.classList.add('saved');
+
+                // Убираем анимацию через 2 секунды
+                setTimeout(() => {
+                    parent.classList.remove('saved');
+                }, 2000);
+            }
+        }
+
+        if (data.success) {
+            // Обновляем отображение
+            updateFieldDisplay(lockerId, fieldName, value, data.data);
+
+            // Убираем из ожидающих изменений
+            if (pendingChanges[lockerId]) {
+                delete pendingChanges[lockerId][fieldName];
+                if (Object.keys(pendingChanges[lockerId]).length === 0) {
+                    delete pendingChanges[lockerId];
+                }
+            }
+
+            // Скрываем кнопки сохранения/отмены, если нет других изменений
+            if (!pendingChanges[lockerId]) {
+                document.getElementById(`save-btn-${lockerId}`).style.display = 'none';
+                document.getElementById(`cancel-btn-${lockerId}`).style.display = 'none';
+            }
+
+            // Обновляем статистику в реальном времени, если изменился статус или зона
+            if (fieldName === 'zone' || fieldName === 'status') {
+                updateStats();
+            }
+        } else {
+            alert('Ошибка сохранения: ' + (data.error || 'Неизвестная ошибка'));
+            cancelEditing(lockerId);
+        }
+    } catch (error) {
+        console.error('Error updating locker:', error);
+        alert('Ошибка сети при сохранении изменений');
+        cancelEditing(lockerId);
+    }
+}
+
+function updateFieldDisplay(lockerId, fieldName, value, serverData = null) {
+    const element = document.getElementById(`locker-${fieldName}-${lockerId}`);
+    if (!element) return;
+
+    // Очищаем элемент и убираем режим редактирования
+    const parent = element.closest('.editable-field') || element.parentElement;
+    if (parent) {
+        parent.classList.remove('edit-mode');
+        parent.innerHTML = '';
+    }
+
+    let displayValue = value;
+
+    // Форматируем значение для отображения
+    switch (fieldName) {
+        case 'number':
+            displayValue = `Шкаф №${value}`;
+            element.innerHTML = displayValue;
+            break;
+
+        case 'zone':
+            if (!value || value.trim() === '') {
+                displayValue = '<i class="fas fa-map-marker-alt"></i> Без зоны';
+            } else {
+                displayValue = `<i class="fas fa-map-marker-alt"></i> ${value}`;
+            }
+            element.innerHTML = displayValue;
+            break;
+
+        case 'status':
+            // Обработка статуса
+            const statusClasses = {
+                'available': 'status-available',
+                'occupied': 'status-occupied',
+                'reserved': 'status-reserved',
+                'maintenance': 'status-maintenance'
+            };
+            const statusTexts = {
+                'available': 'Свободно',
+                'occupied': 'Занято',
+                'reserved': 'Зарезервировано',
+                'maintenance': 'В ремонте'
+            };
+
+            const statusClass = statusClasses[value] || 'status-available';
+            const statusText = statusTexts[value] || 'Свободно';
+
+            // Обновляем HTML элемента статуса
+            element.className = `editable-field ${statusClass}`;
+            element.setAttribute('data-status', value);
+            element.innerHTML = statusText;
+
+            // Также обновляем иконку шкафчика
+            const lockerIcon = element.closest('tr').querySelector('.locker-icon');
+            if (lockerIcon) {
+                // Удаляем все классы статусов иконки
+                lockerIcon.classList.remove('locker-icon-available', 'locker-icon-occupied',
+                                          'locker-icon-reserved', 'locker-icon-maintenance');
+                // Добавляем нужный класс
+                lockerIcon.classList.add(`locker-icon-${value}`);
+            }
+
+            // Если статус изменился на "занято" или "свободно", обновляем информацию об арендаторе
+            if (value === 'occupied' || value === 'available') {
+                updateTenantInfo(lockerId, value);
+            }
+            break;
+
+        case 'condition':
+            const conditionClasses = {
+                'good': 'condition-good',
+                'average': 'condition-average',
+                'poor': 'condition-poor'
+            };
+            const conditionTexts = {
+                'good': 'Хорошее',
+                'average': 'Удовлетворительное',
+                'poor': 'Плохое'
+            };
+
+            const conditionClass = conditionClasses[value] || 'condition-good';
+            const conditionText = conditionTexts[value] || 'Не указано';
+
+            element.className = `editable-field ${conditionClass}`;
+            element.innerHTML = conditionText;
+            break;
+
+        case 'monthly_rental_cost':
+            if (!value || value === '0' || value === '0.00') {
+                displayValue = '<span style="color: #95a5a6; font-style: italic;">—</span>';
+            } else {
+                // Форматируем как число с разделителями тысяч
+                const numValue = parseFloat(value);
+                displayValue = numValue.toLocaleString('ru-RU', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }) + ' ₽/мес';
+            }
+            element.innerHTML = displayValue;
+            break;
+
+        case 'notes':
+            if (!value || value.trim() === '') {
+                displayValue = '<span style="color: #95a5a6; font-style: italic;">—</span>';
+            } else {
+                const truncated = value.length > 50 ? value.substring(0, 47) + '...' : value;
+                displayValue = `<span title="${value.replace(/"/g, '&quot;')}" style="
+                        display: inline-block;
+                        max-width: 200px;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        color: #7f8c8d;
+                    ">${truncated}</span>`;
+            }
+            element.innerHTML = displayValue;
+            break;
+    }
+
+    // Обновляем данные в элементе для следующего редактирования
+    if (parent) {
+        parent.setAttribute('data-value', value);
+    }
+}
+
+function updateTenantInfo(lockerId, status) {
+    const tenantCell = document.getElementById(`locker-tenant-${lockerId}`);
+    if (!tenantCell) return;
+
+    if (status === 'occupied') {
+        // Показываем кнопку для назначения арендатора
+        tenantCell.innerHTML = `
+            <button class="btn-action btn-edit" style="width: 30px; height: 30px;"
+                    onclick="assignTenant(${lockerId})"
+                    title="Назначить арендатора">
+                <i class="fas fa-user-plus"></i>
+            </button>
+        `;
+    } else if (status === 'available') {
+        // Очищаем информацию об арендаторе
+        tenantCell.innerHTML = `
+            <button class="btn-action btn-edit" style="width: 30px; height: 30px;"
+                    onclick="assignTenant(${lockerId})"
+                    title="Назначить арендатора">
+                <i class="fas fa-user-plus"></i>
+            </button>
+        `;
+    }
+}
+
+function cancelEditing(lockerId) {
+    // Восстанавливаем оригинальные значения для всех полей этого шкафчика
+    if (originalValues[lockerId]) {
+        Object.keys(originalValues[lockerId]).forEach(fieldName => {
+            const originalValue = originalValues[lockerId][fieldName];
+            const element = document.getElementById(`locker-${fieldName}-${lockerId}`);
+            if (element) {
+                updateFieldDisplay(lockerId, fieldName, originalValue);
+            }
+        });
+    }
+
+    // Скрываем кнопки сохранения/отмены
+    document.getElementById(`save-btn-${lockerId}`).style.display = 'none';
+    document.getElementById(`cancel-btn-${lockerId}`).style.display = 'none';
+
+    // Убираем из ожидающих изменений
+    delete pendingChanges[lockerId];
+
+    // Сбрасываем контекст редактирования
+    if (currentEditLockerId === lockerId) {
+        currentEditElement = null;
+        currentEditLockerId = null;
+        currentEditField = null;
+    }
+}
+
+function saveAllChanges(lockerId) {
+    if (!pendingChanges[lockerId]) {
+        alert('Нет изменений для сохранения');
+        return;
+    }
+
+    // Собираем все изменения в один запрос
+    const changes = pendingChanges[lockerId];
+
+    // Показываем индикатор сохранения для всей строки
+    const row = document.getElementById(`locker-row-${lockerId}`);
+    row.classList.add('saving');
+
+    fetch(`/api/lockers/${lockerId}/update/`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(changes)
+    })
+        .then(response => response.json())
+        .then(data => {
+            row.classList.remove('saving');
+
+            if (data.success) {
+                // Обновляем все поля
+                Object.keys(changes).forEach(fieldName => {
+                    updateFieldDisplay(lockerId, fieldName, changes[fieldName], data.data);
+                });
+
+                // Очищаем
+                delete pendingChanges[lockerId];
+                document.getElementById(`save-btn-${lockerId}`).style.display = 'none';
+                document.getElementById(`cancel-btn-${lockerId}`).style.display = 'none';
+
+                // Показываем уведомление об успешном сохранении
+                showNotification('Изменения сохранены успешно', 'success');
+            } else {
+                alert('Ошибка сохранения: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        })
+        .catch(error => {
+            row.classList.remove('saving');
+            alert('Ошибка сети при сохранении изменений');
+            console.error('Error:', error);
+        });
+}
+
+// === РЕДАКТИРОВАНИЕ СПЕЦИАЛЬНЫХ ПОЛЕЙ ===
+function editStatus(lockerId) {
+    const statusElement = document.getElementById(`locker-status-${lockerId}`);
+    const currentStatus = statusElement.getAttribute('data-status') || 'available';
+
+    // Создаем выпадающий список
+    const select = document.createElement('select');
+    select.className = 'editable-select';
+    select.innerHTML = `
+        <option value="available" ${currentStatus === 'available' ? 'selected' : ''}>Свободно</option>
+        <option value="occupied" ${currentStatus === 'occupied' ? 'selected' : ''}>Занято</option>
+        <option value="reserved" ${currentStatus === 'reserved' ? 'selected' : ''}>Зарезервировано</option>
+        <option value="maintenance" ${currentStatus === 'maintenance' ? 'selected' : ''}>В ремонте</option>
+    `;
+
+    const parent = statusElement.parentElement;
+
+    // Сохраняем оригинальное значение
+    if (!originalValues[lockerId]) originalValues[lockerId] = {};
+    originalValues[lockerId].status = currentStatus;
+
+    // Заменяем элемент
+    statusElement.style.display = 'none';
+    parent.appendChild(select);
+
+    // Показываем кнопки
+    document.getElementById(`save-btn-${lockerId}`).style.display = 'flex';
+    document.getElementById(`cancel-btn-${lockerId}`).style.display = 'flex';
+
+    // Фокус
+    select.focus();
+
+    // Обработчики
+    select.addEventListener('change', function () {
+        saveField(lockerId, 'status', this.value);
+    });
+
+    select.addEventListener('blur', function () {
+        setTimeout(() => {
+            if (document.activeElement !== this) {
+                saveField(lockerId, 'status', this.value);
+            }
+        }, 200);
+    });
+
+    select.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            cancelEditing(lockerId);
+        }
+    });
+}
+
+function editCondition(lockerId, currentCondition) {
+    const element = document.getElementById(`locker-condition-${lockerId}`);
+    const select = document.createElement('select');
+    select.className = 'editable-select';
+    select.innerHTML = `
+        <option value="good" ${currentCondition === 'good' ? 'selected' : ''}>Хорошее</option>
+        <option value="average" ${currentCondition === 'average' ? 'selected' : ''}>Удовлетворительное</option>
+        <option value="poor" ${currentCondition === 'poor' ? 'selected' : ''}>Плохое</option>
+    `;
+
+    const parent = element.parentElement;
+
+    // Сохраняем оригинальное значение
+    if (!originalValues[lockerId]) originalValues[lockerId] = {};
+    originalValues[lockerId].condition = currentCondition;
+
+    // Заменяем элемент
+    element.style.display = 'none';
+    parent.appendChild(select);
+
+    // Показываем кнопки
+    document.getElementById(`save-btn-${lockerId}`).style.display = 'flex';
+    document.getElementById(`cancel-btn-${lockerId}`).style.display = 'flex';
+
+    // Фокус
+    select.focus();
+
+    // Обработчики
+    select.addEventListener('change', function () {
+        saveField(lockerId, 'condition', this.value);
+    });
+
+    select.addEventListener('blur', function () {
+        setTimeout(() => {
+            if (document.activeElement !== this) {
+                saveField(lockerId, 'condition', this.value);
+            }
+        }, 200);
+    });
+
+    select.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            cancelEditing(lockerId);
+        }
+    });
+}
+
+function editNotes(lockerId, currentNotes) {
+    const element = document.getElementById(`locker-notes-${lockerId}`);
+    startEditing(element, lockerId, 'notes', currentNotes);
+}
+
+// === АРЕНДАТОРЫ И АРЕНДЫ ===
+function assignTenant(lockerId) {
+    // Здесь можно реализовать модальное окно для выбора участника
+    const tenantId = prompt('Введите ID участника для аренды:');
+    if (tenantId) {
+        createRental(lockerId, tenantId);
+    }
+}
+
+function changeTenant(lockerId, currentTenantId) {
+    const newTenantId = prompt('Введите ID нового участника:');
+    if (newTenantId && newTenantId !== currentTenantId) {
+        updateRentalTenant(lockerId, newTenantId);
+    }
+}
+
+function editRentalEndDate(rentalId, currentDate) {
+    const newDate = prompt('Введите новую дату окончания аренды (YYYY-MM-DD):', currentDate || '');
+    if (newDate) {
+        updateRentalEndDate(rentalId, newDate);
+    }
+}
+
+// === СОЗДАНИЕ НОВОГО ШКАФЧИКА ===
+function showAddLockerForm() {
+    document.getElementById('addLockerModal').style.display = 'flex';
+}
+
+function hideAddLockerForm() {
+    document.getElementById('addLockerModal').style.display = 'none';
+    // Очищаем поля формы
+    document.getElementById('new-locker-number').value = '';
+    document.getElementById('new-locker-zone').value = '';
+    document.getElementById('new-locker-condition').value = 'good';
+    document.getElementById('new-locker-cost').value = '';
+    document.getElementById('new-locker-notes').value = '';
+}
+
+function createLocker() {
+    const number = document.getElementById('new-locker-number').value.trim();
+    const zone = document.getElementById('new-locker-zone').value.trim();
+    const condition = document.getElementById('new-locker-condition').value;
+    const cost = document.getElementById('new-locker-cost').value;
+    const notes = document.getElementById('new-locker-notes').value.trim();
+
+    if (!number) {
+        alert('Пожалуйста, введите номер шкафчика');
+        return;
+    }
+
+    const lockerData = {
+        number: number,
+        zone: zone || null,
+        condition: condition,
+        monthly_rental_cost: cost || null,
+        notes: notes || null
+    };
+
+    fetch('/api/lockers/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(lockerData)
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                hideAddLockerForm();
+                showNotification('Шкафчик успешно добавлен', 'success');
+                // Перезагружаем страницу или добавляем строку динамически
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                alert('Ошибка при создании шкафчика: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        })
+        .catch(error => {
+            alert('Ошибка сети при создании шкафчика');
+            console.error('Error:', error);
+        });
+}
+
+// === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showNotification(message, type = 'info') {
+    // Создаем уведомление
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#2196F3'};
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 10000;
+        animation: slideIn 0.3s ease;
+    `;
+    notification.innerHTML = message;
+
+    document.body.appendChild(notification);
+
+    // Удаляем через 3 секунды
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
+    }, 3000);
+}
+
+function updateStats() {
+    // Здесь можно реализовать обновление статистики без перезагрузки страницы
+    // Например, сделать AJAX запрос за новыми данными
+    console.log('Stats should be updated...');
+}
+
+// === API ФУНКЦИИ ===
+async function createRental(lockerId, participantId) {
+    try {
+        // Сначала меняем статус шкафчика на "занято"
+        await updateLockerField(lockerId, 'status', 'occupied');
+
+        const response = await fetch('/api/locker-rentals/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                locker: lockerId,
+                participant: participantId,
+                start_date: new Date().toISOString().split('T')[0],
+                status: 'active'
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            showNotification('Аренда успешно создана', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            alert('Ошибка создания аренды: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    } catch (error) {
+        alert('Ошибка сети при создании аренды');
+        console.error('Error:', error);
+    }
+}
+
+async function updateRentalTenant(lockerId, newParticipantId) {
+    try {
+        const response = await fetch(`/api/locker-rentals/active/${lockerId}/`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                participant: newParticipantId
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            showNotification('Арендатор успешно изменен', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            alert('Ошибка изменения арендатора: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    } catch (error) {
+        alert('Ошибка сети при изменении арендатора');
+        console.error('Error:', error);
+    }
+}
+
+async function endRental(rentalId) {
+    if (!confirm('Вы уверены, что хотите завершить аренду?')) return;
+
+    try {
+        const response = await fetch(`/api/locker-rentals/${rentalId}/end/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            // Меняем статус шкафчика на "свободно"
+            const lockerId = data.data.locker_id;
+            await updateLockerField(lockerId, 'status', 'available');
+
+            showNotification('Аренда успешно завершена', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            alert('Ошибка завершения аренды: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    } catch (error) {
+        alert('Ошибка сети при завершении аренды');
+        console.error('Error:', error);
+    }
+}
+
+// === ОБРАБОТКА КЛАВИАТУРЫ ===
+document.addEventListener('keydown', function (e) {
+    // Esc для отмены редактирования
+    if (e.key === 'Escape' && currentEditLockerId) {
+        cancelEditing(currentEditLockerId);
+    }
+});
+
+// Предотвращаем сохранение при быстром клике
+let lastClickTime = 0;
+document.addEventListener('click', function (e) {
+    const currentTime = new Date().getTime();
+    if (currentTime - lastClickTime < 300) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    lastClickTime = currentTime;
+}, true);
+
+// === СТИЛИ ДЛЯ АНИМАЦИЙ ===
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}
